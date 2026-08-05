@@ -29,17 +29,25 @@ executed from the session brief instead).
 
 ## Decisions
 
-- ASL-LEX gloss matching: 21-entry alias table in `coverage_analysis.py`
-  (dad=FATHER, potty=TOILET, haveto=MUST, ...). 230/250 matched; the 20
-  unmatched are listed in coverage_report.md. kitty/puppy/nap/wake left
-  unmatched on purpose (would collide with cat/dog/sleep/awake).
+- ASL-LEX gloss matching: 24-entry alias table in `coverage_analysis.py`
+  (dad=FATHER, potty=TOILET, haveto=MUST, ...). 233/250 matched; the 17
+  unmatched are listed in coverage_report.md. wake/kitty/puppy/nap alias to
+  awake/cat/dog/sleep — same-sign label collisions, so those pairs show up as
+  maximal strong confusables (visually identical). garbage deliberately
+  unmatched: ASL-LEX 'trash' is the BASKET sign, 'throw_away' unconfirmed.
+  store deliberately unmatched: would resolve to shop_1 = SHOPPING.
 - Confusable definition: "any" tie = >=2 shared of {Handshape.2.0,
   MajorLocation.2.0, Movement.2.0}; "strong" (minimal-pair grade) = shared
   handshape AND major location. Curriculum clusters use strong ties.
 - v1 curriculum: 50 signs hardcoded as `CURRICULUM_V1` in coverage_analysis.py,
   8 minimal-pair clusters incl. the 7-sign 5-hand-at-head family cluster
   (mom/dad/grandma/grandpa/mad/sad/sleep).
-- 204/250 signs also in WLASL-2000.
+- 218/250 signs also in WLASL-2000 (alias-aware match).
+- validate_pipeline's percent-missing uses `1 - mean(confidence)`, not
+  `conf == 0`: resampling smears gap boundaries into fractional confidence, so
+  exact-zero counting undercounts (caught by adversarial review on real data).
+- eye→EYES / tooth→TEETH borrow plural Movement coding (Curved sweep); the
+  handshape+location fields driving the strong-confusable graph are unaffected.
 
 ## Gotchas
 
