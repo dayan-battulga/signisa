@@ -208,9 +208,16 @@ def preprocess(holistic: np.ndarray, fps: float = 30.0, left_dominant: bool = Fa
     coords = resampled(coords, T_OUT)
     confidence = np.clip(resampled(presence[..., None], T_OUT), 0.0, 1.0)
 
-    velocity = np.diff(coords, axis=0, prepend=coords[:1])
-    bones = coords - coords[:, PARENT]
-
-    tensor = np.concatenate([coords, velocity, bones, confidence], axis=2).astype(np.float32)
+    tensor = with_derived_channels(coords, confidence)
     assert tensor.shape == (T_OUT, N_NODES, N_FEATURES)
     return Preprocessed(tensor=tensor, duration_s=duration_s, peak_speed=peak)
+
+
+def with_derived_channels(coords: np.ndarray, confidence: np.ndarray) -> np.ndarray:
+    """(T, 65, 3) coords + (T, 65, 1) confidence -> (T, 65, 10) xyz+velocity+bone+confidence.
+
+    Shared with signisa.data, which stores only xyz+confidence and re-derives the rest.
+    """
+    velocity = np.diff(coords, axis=0, prepend=coords[:1])
+    bones = coords - coords[:, PARENT]
+    return np.concatenate([coords, velocity, bones, confidence], axis=2).astype(np.float32)

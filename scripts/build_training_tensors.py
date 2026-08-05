@@ -1,5 +1,9 @@
 """Precompute training tensors: parquet -> per-participant dominance mirror ->
-preprocess -> (160, 65, 10) float16, sharded .npz + index.csv.
+preprocess -> (160, 65, 4) float16 (xyz + confidence), sharded .npz + index.csv.
+
+Velocity and bone channels are deterministic derivations; signisa.data re-derives
+them at load time. Storing them would blow Kaggle's notebook-output cap
+(10ch = ~20 GB for 94,477 sequences; 4ch = ~8 GB).
 
 Local smoke test: python scripts/build_training_tensors.py \
     --landmarks-dir data/samples --out-dir data/tensors --limit 30
@@ -84,7 +88,7 @@ def main() -> None:
     for row in train.itertuples():
         mirrored = row.participant_id in left_pids
         result = preprocess(load_holistic(row.parquet), fps=args.fps, left_dominant=mirrored)
-        tensor16 = result.tensor.astype(np.float16)
+        tensor16 = result.tensor[..., [0, 1, 2, 9]].astype(np.float16)  # xyz + confidence
         # catches float16 overflow from a degenerate shoulder-width normalization
         assert np.isfinite(tensor16).all(), f"non-finite float16 tensor for {row.sequence_id}"
         shard.append(tensor16)
