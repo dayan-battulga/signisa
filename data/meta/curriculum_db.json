@@ -1,0 +1,1438 @@
+{
+ "version": 1,
+ "n_signs": 50,
+ "clusters": [
+  [
+   "dad",
+   "grandma",
+   "grandpa",
+   "mad",
+   "mom",
+   "sad",
+   "sleep"
+  ],
+  [
+   "car",
+   "milk",
+   "shoe",
+   "yes"
+  ],
+  [
+   "bye",
+   "finish",
+   "wait"
+  ],
+  [
+   "bed",
+   "hat",
+   "thankyou"
+  ],
+  [
+   "aunt",
+   "brother",
+   "girl"
+  ],
+  [
+   "black",
+   "nose",
+   "red"
+  ],
+  [
+   "blue",
+   "close",
+   "open"
+  ],
+  [
+   "happy",
+   "please"
+  ]
+ ],
+ "signs": {
+  "hello": {
+   "label": "hello",
+   "label_id": 113,
+   "asllex_entry": "hello",
+   "phonology": {
+    "handshape": "closed_b",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "brown",
+    "quiet"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "bye": {
+   "label": "bye",
+   "label_id": 33,
+   "asllex_entry": "bye",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "finish",
+    "wait"
+   ],
+   "confusables": [
+    "finish",
+    "tree",
+    "wait",
+    "wet"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "please": {
+   "label": "please",
+   "label_id": 171,
+   "asllex_entry": "please",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Body",
+    "minor_location": "TorsoTop",
+    "movement": "Circular",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "happy"
+   ],
+   "confusables": [
+    "happy",
+    "minemy"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "thankyou": {
+   "label": "thankyou",
+   "label_id": 211,
+   "asllex_entry": "thank_you",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Head",
+    "minor_location": "Mouth",
+    "movement": "Curved",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "bed",
+    "hat"
+   ],
+   "confusables": [
+    "bad",
+    "because",
+    "bed",
+    "bedroom",
+    "better",
+    "donkey",
+    "elephant",
+    "hat",
+    "napkin",
+    "pig",
+    "will"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "yes": {
+   "label": "yes",
+   "label_id": 240,
+   "asllex_entry": "yes",
+   "phonology": {
+    "handshape": "s",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "car",
+    "milk",
+    "shoe"
+   ],
+   "confusables": [
+    "can",
+    "car",
+    "drop",
+    "make",
+    "many",
+    "milk",
+    "shoe"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "no": {
+   "label": "no",
+   "label_id": 151,
+   "asllex_entry": "no",
+   "phonology": {
+    "handshape": "flat_h",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "mom": {
+   "label": "mom",
+   "label_id": 144,
+   "asllex_entry": "mother",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "Chin",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "dad",
+    "grandma",
+    "grandpa",
+    "mad",
+    "sad",
+    "sleep"
+   ],
+   "confusables": [
+    "dad",
+    "dirty",
+    "farm",
+    "grandma",
+    "grandpa",
+    "hate",
+    "mad",
+    "man",
+    "noisy",
+    "pretty",
+    "sad",
+    "sleep",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "dad": {
+   "label": "dad",
+   "label_id": 55,
+   "asllex_entry": "father",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "grandma",
+    "grandpa",
+    "mad",
+    "mom",
+    "sad",
+    "sleep"
+   ],
+   "confusables": [
+    "dirty",
+    "farm",
+    "grandma",
+    "grandpa",
+    "hate",
+    "mad",
+    "man",
+    "mom",
+    "noisy",
+    "pretty",
+    "sad",
+    "sleep",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "grandma": {
+   "label": "grandma",
+   "label_id": 99,
+   "asllex_entry": "grandmother",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "Chin",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "dad",
+    "grandpa",
+    "mad",
+    "mom",
+    "sad",
+    "sleep"
+   ],
+   "confusables": [
+    "dad",
+    "dirty",
+    "farm",
+    "grandpa",
+    "hate",
+    "mad",
+    "man",
+    "mom",
+    "noisy",
+    "pretty",
+    "sad",
+    "sleep",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "grandpa": {
+   "label": "grandpa",
+   "label_id": 100,
+   "asllex_entry": "grandfather",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "dad",
+    "grandma",
+    "mad",
+    "mom",
+    "sad",
+    "sleep"
+   ],
+   "confusables": [
+    "dad",
+    "dirty",
+    "farm",
+    "grandma",
+    "hate",
+    "mad",
+    "man",
+    "mom",
+    "noisy",
+    "pretty",
+    "sad",
+    "sleep",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "boy": {
+   "label": "boy",
+   "label_id": 29,
+   "asllex_entry": "boy",
+   "phonology": {
+    "handshape": "flat_o",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "flower",
+    "kiss",
+    "sun"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "girl": {
+   "label": "girl",
+   "label_id": 94,
+   "asllex_entry": "girl",
+   "phonology": {
+    "handshape": "a",
+    "major_location": "Head",
+    "minor_location": "CheekNose",
+    "movement": "Curved",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "aunt",
+    "brother"
+   ],
+   "confusables": [
+    "aunt",
+    "brother",
+    "hide",
+    "not",
+    "nuts",
+    "tomorrow",
+    "yesterday"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "child": {
+   "label": "child",
+   "label_id": 42,
+   "asllex_entry": "child",
+   "phonology": {
+    "handshape": "flat_b",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "aunt": {
+   "label": "aunt",
+   "label_id": 10,
+   "asllex_entry": "aunt",
+   "phonology": {
+    "handshape": "a",
+    "major_location": "Head",
+    "minor_location": "HeadAway",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "brother",
+    "girl"
+   ],
+   "confusables": [
+    "brother",
+    "girl",
+    "hide",
+    "not",
+    "nuts",
+    "tomorrow",
+    "yesterday"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "brother": {
+   "label": "brother",
+   "label_id": 30,
+   "asllex_entry": "brother",
+   "phonology": {
+    "handshape": "a",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "aunt",
+    "girl"
+   ],
+   "confusables": [
+    "aunt",
+    "girl",
+    "hide",
+    "not",
+    "nuts",
+    "tomorrow",
+    "yesterday"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "dog": {
+   "label": "dog",
+   "label_id": 58,
+   "asllex_entry": "dog",
+   "phonology": {
+    "handshape": "d",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "cat": {
+   "label": "cat",
+   "label_id": 38,
+   "asllex_entry": "cat",
+   "phonology": {
+    "handshape": "f",
+    "major_location": "Head",
+    "minor_location": "CheekNose",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "bee",
+    "hair"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "bird": {
+   "label": "bird",
+   "label_id": 23,
+   "asllex_entry": "bird",
+   "phonology": {
+    "handshape": "g",
+    "major_location": "Head",
+    "minor_location": "Mouth",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "awake"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "fish": {
+   "label": "fish",
+   "label_id": 84,
+   "asllex_entry": "fish",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Hand",
+    "minor_location": "FingerTip",
+    "movement": null,
+    "sign_type": "AsymmetricalSameHandshape",
+    "one_handed": false
+   },
+   "cluster": [],
+   "confusables": [
+    "after",
+    "all",
+    "clean",
+    "glasswindow",
+    "on"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "nose": {
+   "label": "nose",
+   "label_id": 153,
+   "asllex_entry": "nose",
+   "phonology": {
+    "handshape": "1",
+    "major_location": "Head",
+    "minor_location": "CheekNose",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "black",
+    "red"
+   ],
+   "confusables": [
+    "black",
+    "cry",
+    "dry",
+    "dryer",
+    "eye",
+    "face",
+    "for",
+    "hear",
+    "lips",
+    "loud",
+    "mouse",
+    "mouth",
+    "pretend",
+    "red"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "red": {
+   "label": "red",
+   "label_id": 182,
+   "asllex_entry": "red",
+   "phonology": {
+    "handshape": "1",
+    "major_location": "Head",
+    "minor_location": "Mouth",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "black",
+    "nose"
+   ],
+   "confusables": [
+    "black",
+    "cry",
+    "dry",
+    "dryer",
+    "eye",
+    "face",
+    "for",
+    "hear",
+    "lips",
+    "loud",
+    "mouse",
+    "mouth",
+    "nose",
+    "pretend"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "blue": {
+   "label": "blue",
+   "label_id": 26,
+   "asllex_entry": "blue",
+   "phonology": {
+    "handshape": "closed_b",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "close",
+    "open"
+   ],
+   "confusables": [
+    "close",
+    "open"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "green": {
+   "label": "green",
+   "label_id": 102,
+   "asllex_entry": "green",
+   "phonology": {
+    "handshape": "g",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "yellow": {
+   "label": "yellow",
+   "label_id": 239,
+   "asllex_entry": "yellow",
+   "phonology": {
+    "handshape": "y",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "now",
+    "same",
+    "stay",
+    "that",
+    "toy"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "black": {
+   "label": "black",
+   "label_id": 24,
+   "asllex_entry": "black",
+   "phonology": {
+    "handshape": "1",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "nose",
+    "red"
+   ],
+   "confusables": [
+    "cry",
+    "dry",
+    "dryer",
+    "eye",
+    "face",
+    "for",
+    "hear",
+    "lips",
+    "loud",
+    "mouse",
+    "mouth",
+    "nose",
+    "pretend",
+    "red"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "white": {
+   "label": "white",
+   "label_id": 234,
+   "asllex_entry": "white",
+   "phonology": {
+    "handshape": "flatspread_5",
+    "major_location": "Body",
+    "minor_location": "TorsoTop",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "snow"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "apple": {
+   "label": "apple",
+   "label_id": 8,
+   "asllex_entry": "apple",
+   "phonology": {
+    "handshape": "bent_1",
+    "major_location": "Head",
+    "minor_location": "CheekNose",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "cereal",
+    "doll",
+    "tooth"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "milk": {
+   "label": "milk",
+   "label_id": 141,
+   "asllex_entry": "milk",
+   "phonology": {
+    "handshape": "s",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "car",
+    "shoe",
+    "yes"
+   ],
+   "confusables": [
+    "can",
+    "car",
+    "drop",
+    "make",
+    "many",
+    "shoe",
+    "yes"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "water": {
+   "label": "water",
+   "label_id": 230,
+   "asllex_entry": "water",
+   "phonology": {
+    "handshape": "w",
+    "major_location": "Head",
+    "minor_location": "Chin",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "drink": {
+   "label": "drink",
+   "label_id": 63,
+   "asllex_entry": "drink",
+   "phonology": {
+    "handshape": "c",
+    "major_location": "Head",
+    "minor_location": "HeadAway",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "food": {
+   "label": "food",
+   "label_id": 87,
+   "asllex_entry": "eat_1",
+   "phonology": {
+    "handshape": "o",
+    "major_location": "Head",
+    "minor_location": "Mouth",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "blow",
+    "home",
+    "old",
+    "orange",
+    "owl"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "hungry": {
+   "label": "hungry",
+   "label_id": 121,
+   "asllex_entry": "hungry",
+   "phonology": {
+    "handshape": "c",
+    "major_location": "Body",
+    "minor_location": "TorsoTop",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [
+    "giraffe"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "thirsty": {
+   "label": "thirsty",
+   "label_id": 215,
+   "asllex_entry": "thirsty",
+   "phonology": {
+    "handshape": "flat_1",
+    "major_location": "Body",
+    "minor_location": "Neck",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "happy": {
+   "label": "happy",
+   "label_id": 105,
+   "asllex_entry": "happy",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Body",
+    "minor_location": "TorsoTop",
+    "movement": "Curved",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "please"
+   ],
+   "confusables": [
+    "minemy",
+    "please"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "sad": {
+   "label": "sad",
+   "label_id": 186,
+   "asllex_entry": "sad",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "HeadAway",
+    "movement": "Straight",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "dad",
+    "grandma",
+    "grandpa",
+    "mad",
+    "mom",
+    "sleep"
+   ],
+   "confusables": [
+    "dad",
+    "dirty",
+    "farm",
+    "grandma",
+    "grandpa",
+    "hate",
+    "mad",
+    "man",
+    "mom",
+    "noisy",
+    "pretty",
+    "sleep",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "mad": {
+   "label": "mad",
+   "label_id": 137,
+   "asllex_entry": "mad",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "HeadAway",
+    "movement": "Curved",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "dad",
+    "grandma",
+    "grandpa",
+    "mom",
+    "sad",
+    "sleep"
+   ],
+   "confusables": [
+    "dad",
+    "dirty",
+    "farm",
+    "grandma",
+    "grandpa",
+    "hate",
+    "man",
+    "mom",
+    "noisy",
+    "pretty",
+    "sad",
+    "sleep",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "sick": {
+   "label": "sick",
+   "label_id": 195,
+   "asllex_entry": "sick",
+   "phonology": {
+    "handshape": "open_8",
+    "major_location": "Head",
+    "minor_location": "Forehead",
+    "movement": "Straight",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [],
+   "confusables": [
+    "taste"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "go": {
+   "label": "go",
+   "label_id": 97,
+   "asllex_entry": "go",
+   "phonology": {
+    "handshape": "1",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Curved",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [],
+   "confusables": [
+    "down",
+    "finger",
+    "first",
+    "owie",
+    "there",
+    "up",
+    "where",
+    "yucky"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "wait": {
+   "label": "wait",
+   "label_id": 229,
+   "asllex_entry": "wait",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "bye",
+    "finish"
+   ],
+   "confusables": [
+    "bye",
+    "finish",
+    "tree",
+    "wet"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "sleep": {
+   "label": "sleep",
+   "label_id": 196,
+   "asllex_entry": "sleep",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Head",
+    "minor_location": "HeadAway",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "dad",
+    "grandma",
+    "grandpa",
+    "mad",
+    "mom",
+    "sad"
+   ],
+   "confusables": [
+    "dad",
+    "dirty",
+    "farm",
+    "grandma",
+    "grandpa",
+    "hate",
+    "mad",
+    "man",
+    "mom",
+    "noisy",
+    "pretty",
+    "sad",
+    "tiger"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "look": {
+   "label": "look",
+   "label_id": 135,
+   "asllex_entry": "look_at",
+   "phonology": {
+    "handshape": "flat_v",
+    "major_location": "Head",
+    "minor_location": "Eye",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [],
+   "confusables": [],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "read": {
+   "label": "read",
+   "label_id": 181,
+   "asllex_entry": "read",
+   "phonology": {
+    "handshape": "v",
+    "major_location": "Hand",
+    "minor_location": "HandAway",
+    "movement": "Straight",
+    "sign_type": "AsymmetricalDifferentHandshape",
+    "one_handed": false
+   },
+   "cluster": [],
+   "confusables": [
+    "dance",
+    "jump"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "open": {
+   "label": "open",
+   "label_id": 159,
+   "asllex_entry": "open",
+   "phonology": {
+    "handshape": "closed_b",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Curved",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "blue",
+    "close"
+   ],
+   "confusables": [
+    "blue",
+    "close"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "close": {
+   "label": "close",
+   "label_id": 46,
+   "asllex_entry": "close",
+   "phonology": {
+    "handshape": "closed_b",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Curved",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "blue",
+    "open"
+   ],
+   "confusables": [
+    "blue",
+    "open"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "finish": {
+   "label": "finish",
+   "label_id": 81,
+   "asllex_entry": "finish",
+   "phonology": {
+    "handshape": "5",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": null,
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "bye",
+    "wait"
+   ],
+   "confusables": [
+    "bye",
+    "tree",
+    "wait",
+    "wet"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "book": {
+   "label": "book",
+   "label_id": 28,
+   "asllex_entry": "book",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Curved",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [],
+   "confusables": [
+    "boat",
+    "flag",
+    "morning",
+    "room"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "bed": {
+   "label": "bed",
+   "label_id": 17,
+   "asllex_entry": "bed",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Head",
+    "minor_location": "Other",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "hat",
+    "thankyou"
+   ],
+   "confusables": [
+    "bad",
+    "because",
+    "bedroom",
+    "better",
+    "donkey",
+    "elephant",
+    "hat",
+    "napkin",
+    "pig",
+    "thankyou",
+    "will"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "car": {
+   "label": "car",
+   "label_id": 36,
+   "asllex_entry": "car",
+   "phonology": {
+    "handshape": "s",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Curved",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "milk",
+    "shoe",
+    "yes"
+   ],
+   "confusables": [
+    "can",
+    "drop",
+    "make",
+    "many",
+    "milk",
+    "shoe",
+    "yes"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "shoe": {
+   "label": "shoe",
+   "label_id": 193,
+   "asllex_entry": "shoes",
+   "phonology": {
+    "handshape": "s",
+    "major_location": "Neutral",
+    "minor_location": "Neutral",
+    "movement": "Straight",
+    "sign_type": "SymmetricalOrAlternating",
+    "one_handed": false
+   },
+   "cluster": [
+    "car",
+    "milk",
+    "yes"
+   ],
+   "confusables": [
+    "can",
+    "car",
+    "drop",
+    "make",
+    "many",
+    "milk",
+    "yes"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  },
+  "hat": {
+   "label": "hat",
+   "label_id": 106,
+   "asllex_entry": "hat",
+   "phonology": {
+    "handshape": "open_b",
+    "major_location": "Head",
+    "minor_location": "HeadTop",
+    "movement": "Straight",
+    "sign_type": "OneHanded",
+    "one_handed": true
+   },
+   "cluster": [
+    "bed",
+    "thankyou"
+   ],
+   "confusables": [
+    "bad",
+    "because",
+    "bed",
+    "bedroom",
+    "better",
+    "donkey",
+    "elephant",
+    "napkin",
+    "pig",
+    "thankyou",
+    "will"
+   ],
+   "centroid": null,
+   "eer_threshold": null,
+   "low_far_threshold": null,
+   "weibull_params": null
+  }
+ }
+}
