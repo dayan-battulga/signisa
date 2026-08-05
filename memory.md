@@ -5,6 +5,31 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 2 (2026-08-05, later):
+- Dominance detection done (`src/signisa/preprocess/dominance.py`): per-hand
+  score = presence-fraction x mean wrist speed, 1.2x hysteresis -> left/right/
+  ambiguous; per-participant majority vote (`majority_dominance`, ties ->
+  right/no-mirror); per-sequence fallback reserved for unseen participants.
+  `load_wrists` in kaggle.py reads only the 2 wrist rows/frame for a fast
+  dominance pass. On the 30 samples: 5/15 participants left-dominant -> 9/30
+  sequences mirrored (small-sample votes over 1-3 seqs; the full-data vote
+  happens in build_training_tensors on Kaggle).
+- Label collisions derived systematically (same resolved ASL-LEX entry):
+  exactly 4 groups — awake/wake, cat/kitty, dog/puppy, nap/sleep -> **246
+  canonical training classes** in `data/meta/training_labels.json`
+  (classes + sign_to_class for all 250). Curriculum verified all-canonical.
+- `data/meta/curriculum_db.json` built (backlog 0.4): 50 signs with phonology
+  (handshape, major/minor location, movement, sign_type/one_handed), cluster
+  members, canonicalized strong confusables within the 250, null slots for
+  centroid/eer_threshold/low_far_threshold/weibull_params.
+- `scripts/build_training_tensors.py`: two passes (wrist dominance vote, then
+  mirror+preprocess) -> float16 (160,65,10) in ~500-seq .npz shards +
+  index.csv (sequence_id, participant_id, canonical_label_id, duration_s,
+  peak_speed, mirrored). Row i -> shard i//500. Local smoke: 72 seq/s overall
+  => full 94,477 seqs ~22 min single-process; Kaggle full run pending.
+
+Session 1:
+
 - Phase 0.3 done: pipeline validated on 30 real Kaggle asl-signs parquets
   (10 signs x 3 signers). All outputs (160, 65, 10), NaN-free.
   `scripts/validate_pipeline.py` reruns the check.
@@ -67,8 +92,12 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
 - Kaggle coverage is near-uniform (299–415 examples, 19–21 signers per sign) —
   coverage does not discriminate for curriculum selection.
 - Many real sequences have one hand 100% absent (single-handed signs +
-  left-dominant signers). `preprocess(left_dominant=...)` exists but nothing
-  detects dominance yet — needed before training (open Phase 0/1 item).
+  left-dominant signers). Dominance detection now exists (session 2); note
+  ~33% of sample participants vote left-dominant — likely selfie-mirroring in
+  the Kaggle capture rather than true handedness. Irrelevant to us: canonical
+  mirroring only needs data-space consistency, not true handedness.
+- Kaggle parquets carry all 543 rows per frame with all-NaN coords when a
+  detector missed — `load_wrists`' filtered read relies on this.
 - Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
 
 ## Missing / absent from expected inputs
