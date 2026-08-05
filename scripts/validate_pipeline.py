@@ -27,19 +27,34 @@ def main() -> None:
     paths = sorted(samples_dir.glob("*.parquet"))
     if not paths:
         sys.exit(f"no parquets in {samples_dir}")
-    sign_of = {}
+    sign_of, participant_of = {}, {}
     if train_csv.exists():
         meta = pd.read_csv(train_csv)
         sign_of = dict(zip(meta.sequence_id.astype(str), meta.sign))
+        participant_of = dict(zip(meta.sequence_id.astype(str), meta.participant_id))
 
+    from signisa.preprocess.dominance import hand_dominance, majority_dominance
     from signisa.preprocess.pipeline import select_nodes
 
+    # Handedness is a person trait: per-sequence votes -> per-participant majority.
+    holistics = {p: load_holistic(p) for p in paths}
+    votes = {p: hand_dominance(h) for p, h in holistics.items()}
+    by_participant: dict = {}
+    for p in paths:
+        by_participant.setdefault(participant_of.get(p.stem, p.stem), []).append(votes[p])
+    left_participants = {pid for pid, vs in by_participant.items()
+                         if majority_dominance(vs) == "left"}
+
     face_frames = []  # raw selected face rows for the geometry check
+    n_mirrored = 0
     print(f"{'sequence':>12} {'sign':>12} {'T_raw':>5} {'shape':>13} "
-          f"{'LH%0':>5} {'RH%0':>5} {'body%0':>6} {'face%0':>6} {'dur_s':>6} {'peak':>6}")
+          f"{'LH%0':>5} {'RH%0':>5} {'body%0':>6} {'face%0':>6} {'dur_s':>6} {'peak':>6} "
+          f"{'dom':>9} {'mir':>3}")
     for path in paths:
-        holistic = load_holistic(path)
-        result = preprocess(holistic)
+        holistic = holistics[path]
+        mirror = participant_of.get(path.stem, path.stem) in left_participants
+        n_mirrored += mirror
+        result = preprocess(holistic, left_dominant=mirror)
         assert np.isfinite(result.tensor).all(), f"NaN/inf in output for {path.name}"
         conf = result.tensor[..., 9]
         # 1 - mean confidence, not (conf == 0): resampling smears gap boundaries into
@@ -48,12 +63,15 @@ def main() -> None:
         sign = sign_of.get(path.stem, "?")
         print(f"{path.stem:>12} {sign:>12} {holistic.shape[0]:>5} {str(result.tensor.shape):>13} "
               f"{zeros['left_hand']:>5.1f} {zeros['right_hand']:>5.1f} {zeros['body']:>6.1f} "
-              f"{zeros['face']:>6.1f} {result.duration_s:>6.2f} {result.peak_speed:>6.2f}")
+              f"{zeros['face']:>6.1f} {result.duration_s:>6.2f} {result.peak_speed:>6.2f} "
+              f"{votes[path]:>9} {'y' if mirror else '':>3}")
         sel = select_nodes(holistic)
         face_nodes = [NOSE] + list(BROWS) + list(EYES) + list(MOUTH)  # nose too: geometry check reads it
         face_frames.append(sel[~np.isnan(sel[:, face_nodes]).any(axis=(1, 2))])
 
     check_face_geometry(np.concatenate(face_frames))
+    print(f"mirroring: {len(left_participants)}/{len(by_participant)} participants left-dominant "
+          f"-> {n_mirrored}/{len(paths)} sequences mirrored")
     print("OK: all outputs NaN-free")
 
 

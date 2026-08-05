@@ -18,6 +18,21 @@ _TYPE_OFFSET = {
     "right_hand": RIGHT_HAND_OFFSET,
 }
 
+def load_wrists(parquet_path) -> tuple[np.ndarray, np.ndarray]:
+    """(left, right) (T, 3) hand-wrist tracks — the cheap read for dominance scoring.
+
+    Kaggle parquets carry all 543 rows per frame (NaN coords when a detector missed),
+    so the filtered read returns exactly one row per frame per hand.
+    """
+    df = pd.read_parquet(
+        parquet_path, columns=["frame", "type", "x", "y", "z"],
+        filters=[("type", "in", ["left_hand", "right_hand"]), ("landmark_index", "==", 0)],
+    ).sort_values("frame")
+    left = df[df["type"] == "left_hand"][["x", "y", "z"]].to_numpy(dtype=np.float32)
+    right = df[df["type"] == "right_hand"][["x", "y", "z"]].to_numpy(dtype=np.float32)
+    return left, right
+
+
 def load_holistic(parquet_path) -> np.ndarray:
     """Read one sequence into a (T, 543, 3) float32 array with NaN for missing landmarks."""
     df = pd.read_parquet(parquet_path, columns=["frame", "type", "landmark_index", "x", "y", "z"])
