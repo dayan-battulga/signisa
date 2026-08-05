@@ -1,0 +1,51 @@
+sign,n_examples,n_signers,in_wlasl2000,handshape,location,movement,confusables_in_curriculum,confusables_strong_250,n_confusables_any_250
+hello,390,21,True,closed_b,Head,Straight,,brown quiet,49
+bye,402,21,True,5,Neutral,,finish wait,finish tree wait wet,4
+please,384,21,True,open_b,Body,Circular,happy,happy minemy,5
+thankyou,357,21,True,open_b,Head,Curved,bed hat,bad because bed bedroom better donkey elephant hat napkin pig will,37
+yes,386,21,True,s,Neutral,Straight,car milk shoe,can car drop make many milk shoe,33
+no,370,21,True,flat_h,Neutral,,,,0
+mom,395,21,True,5,Head,Straight,dad grandma grandpa mad sad sleep,dad dirty farm grandma grandpa hate mad man noisy pretty sad sleep tiger,57
+dad,378,21,True,5,Head,Straight,grandma grandpa mad mom sad sleep,dirty farm grandma grandpa hate mad man mom noisy pretty sad sleep tiger,57
+grandma,382,21,True,5,Head,,dad grandpa mad mom sad sleep,dad dirty farm grandpa hate mad man mom noisy pretty sad sleep tiger,13
+grandpa,387,21,False,5,Head,,dad grandma mad mom sad sleep,dad dirty farm grandma hate mad man mom noisy pretty sad sleep tiger,13
+boy,382,21,True,flat_o,Head,,,flower kiss sun,3
+girl,378,21,True,a,Head,Curved,aunt brother,aunt brother hide not nuts tomorrow yesterday,32
+child,348,21,True,flat_b,Neutral,Straight,,,31
+aunt,391,21,True,a,Head,,brother girl,brother girl hide not nuts tomorrow yesterday,7
+brother,395,21,True,a,Head,,aunt girl,aunt girl hide not nuts tomorrow yesterday,7
+dog,380,21,True,d,Neutral,,,,0
+cat,400,21,True,f,Head,Straight,,bee hair,50
+bird,404,21,True,g,Head,,,awake,1
+fish,380,21,True,open_b,Hand,,,after all clean glasswindow on,5
+nose,382,21,True,1,Head,Straight,black red,black cry dry dryer eye face for hear lips loud mouse mouth pretend red,59
+red,379,21,True,1,Head,,black nose,black cry dry dryer eye face for hear lips loud mouse mouth nose pretend,14
+blue,362,21,True,closed_b,Neutral,,close open,close open,2
+green,382,21,True,g,Neutral,,,,0
+yellow,384,21,True,y,Neutral,,,now same stay that toy,5
+black,388,21,True,1,Head,Straight,nose red,cry dry dryer eye face for hear lips loud mouse mouth nose pretend red,59
+white,370,21,True,flatspread_5,Body,Straight,,snow,19
+apple,377,21,True,bent_1,Head,,,cereal doll tooth,3
+milk,377,21,True,s,Neutral,,car shoe yes,can car drop make many shoe yes,7
+water,384,21,True,w,Head,Straight,,,47
+drink,400,21,True,c,Head,Straight,,,50
+food,392,21,True,o,Head,Straight,,blow home old orange owl,50
+hungry,385,21,True,c,Body,Straight,,giraffe,20
+thirsty,360,21,True,flat_1,Body,Straight,,,21
+happy,379,21,True,open_b,Body,Curved,please,minemy please,13
+sad,391,21,True,5,Head,Straight,dad grandma grandpa mad mom sleep,dad dirty farm grandma grandpa hate mad man mom noisy pretty sleep tiger,57
+mad,392,21,True,5,Head,Curved,dad grandma grandpa mom sad sleep,dad dirty farm grandma grandpa hate man mom noisy pretty sad sleep tiger,36
+sick,380,21,True,open_8,Head,Straight,,taste,48
+go,388,21,True,1,Neutral,Curved,,down finger first owie there up where yucky,26
+wait,346,21,True,5,Neutral,,bye finish,bye finish tree wet,4
+sleep,380,21,True,5,Head,Straight,dad grandma grandpa mad mom sad,dad dirty farm grandma grandpa hate mad man mom noisy pretty sad tiger,57
+look,414,21,False,flat_v,Head,Straight,,,47
+read,362,21,True,v,Hand,Straight,,dance jump,12
+open,354,21,True,closed_b,Neutral,Curved,blue close,blue close,18
+close,374,20,True,closed_b,Neutral,Curved,blue open,blue open,18
+finish,388,21,True,5,Neutral,,bye wait,bye tree wait wet,4
+book,368,21,True,open_b,Neutral,Curved,,boat flag morning room,26
+bed,353,21,True,open_b,Head,Straight,hat thankyou,bad because bedroom better donkey elephant hat napkin pig thankyou will,63
+car,353,21,True,s,Neutral,Curved,milk shoe yes,can drop make many milk shoe yes,23
+shoe,364,21,False,s,Neutral,Straight,car milk yes,can car drop make many milk yes,33
+hat,342,21,True,open_b,Head,Straight,bed thankyou,bad because bed bedroom better donkey elephant napkin pig thankyou will,63
