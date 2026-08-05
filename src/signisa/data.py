@@ -7,6 +7,7 @@ BEFORE derivation so derived channels stay consistent. No horizontal flipping
 ever — sequences are already in canonical right-dominant space.
 """
 
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -52,6 +53,20 @@ def augmented(coords: np.ndarray, confidence: np.ndarray, cfg: AugmentConfig,
     return coords, confidence
 
 
+@lru_cache(maxsize=1)
+def _load_shards(tensors_dir: str) -> np.ndarray:
+    """All shards as one read-only array, shared by every ShardDataset over the dir.
+
+    ponytail: whole dataset in RAM (~8 GB float16 for the full 94k; train/val/eval
+    instances share ONE copy via this cache). Switch the build to raw .npy +
+    mmap_mode='r' if a Kaggle instance can't hold it.
+    """
+    shards = sorted(Path(tensors_dir).glob("shard_*.npz"))
+    tensors = np.concatenate([np.load(p)["tensors"] for p in shards])
+    tensors.setflags(write=False)
+    return tensors
+
+
 class ShardDataset(Dataset):
     """(160, 65, 10) float32 tensor + canonical label id per sequence.
 
@@ -69,10 +84,7 @@ class ShardDataset(Dataset):
         self.index = index
         self.augment = augment
         self.aug_config = aug_config or AugmentConfig()
-        # ponytail: whole dataset in RAM (~8 GB float16 for the full 94k); switch the
-        # build to raw .npy + mmap_mode='r' if a Kaggle instance can't hold it.
-        shards = sorted(tensors_dir.glob("shard_*.npz"))
-        self.tensors = np.concatenate([np.load(p)["tensors"] for p in shards])
+        self.tensors = _load_shards(str(tensors_dir))
         assert self.tensors.shape[1:] == (160, 65, 4), self.tensors.shape
 
     def __len__(self) -> int:
