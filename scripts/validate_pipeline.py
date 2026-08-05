@@ -42,13 +42,16 @@ def main() -> None:
         result = preprocess(holistic)
         assert np.isfinite(result.tensor).all(), f"NaN/inf in output for {path.name}"
         conf = result.tensor[..., 9]
-        zeros = {name: 100.0 * (conf[:, sl] == 0.0).mean() for name, sl in GROUPS.items()}
+        # 1 - mean confidence, not (conf == 0): resampling smears gap boundaries into
+        # fractional values, so exact-zero counting undercounts missing spans.
+        zeros = {name: 100.0 * (1.0 - conf[:, sl].mean()) for name, sl in GROUPS.items()}
         sign = sign_of.get(path.stem, "?")
         print(f"{path.stem:>12} {sign:>12} {holistic.shape[0]:>5} {str(result.tensor.shape):>13} "
               f"{zeros['left_hand']:>5.1f} {zeros['right_hand']:>5.1f} {zeros['body']:>6.1f} "
               f"{zeros['face']:>6.1f} {result.duration_s:>6.2f} {result.peak_speed:>6.2f}")
         sel = select_nodes(holistic)
-        face_frames.append(sel[~np.isnan(sel[:, list(BROWS) + list(EYES) + list(MOUTH)]).any(axis=(1, 2))])
+        face_nodes = [NOSE] + list(BROWS) + list(EYES) + list(MOUTH)  # nose too: geometry check reads it
+        face_frames.append(sel[~np.isnan(sel[:, face_nodes]).any(axis=(1, 2))])
 
     check_face_geometry(np.concatenate(face_frames))
     print("OK: all outputs NaN-free")
