@@ -5,6 +5,36 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 3 (2026-08-05, Phase 1 prep — everything CPU-smoke-tested, nothing
+trained for real yet):
+- Tensor storage slimmed to (160, 65, 4) float16 = xyz + confidence (~8 GB for
+  94k vs ~20 GB at 10 channels — Kaggle output cap). `signisa.data.ShardDataset`
+  re-derives velocity+bones via the shared `with_derived_channels` helper so
+  reconstruction matches preprocess() exactly (tested to float16 rounding).
+- Train-time augmentations in data.py (off for val): temporal span masking
+  (<=40% frames), affine jitter (rot +-5deg / scale +-5% / trans +-0.02),
+  whole-sequence node dropout p=0.05, gaussian noise sigma=0.005 on present
+  nodes. Augment BEFORE channel derivation. Never horizontal flip.
+- Model: cnn_transformer per 3A Kaggle-1st pattern — Linear stem 650->192,
+  3 depthwise-conv blocks (k=17, DropPath 0.2), 2 BatchNorm transformer
+  layers, confidence-weighted mean pool, 512-d L2-normed embedding. 1.36M
+  params (<2M budget). Heads: plain CE or ArcFace (s=30, m=0.3).
+  All knobs in signisa.config.Config.
+- Trainer: AdamW, warmup->cosine, AMP on CUDA, early stop on val top-1.
+- Eval (signisa/eval.py): 4-of-21 seeded signer-independent split, centroids
+  from train participants only, genuine vs confusable+20-random impostor
+  trials, global TAR@FAR5, per-sign EER/thresholds, per-cluster histogram-
+  overlap collapse check (flag > 50%), closed-set top-1 anchor. Writes
+  metrics_report.md + curriculum_db_trained.json (centroids + thresholds).
+- notebooks/kaggle_prep.ipynb (CPU: clone+install -> full tensor build,
+  asserts < 15 GB) and kaggle_train.ipynb (GPU: CONFIG cell -> train -> eval
+  -> model.pt). Thin wrappers; all logic lives in the package.
+- CPU smoke: overfit-10-sequences hits 100% top-1 in <=50 steps for BOTH
+  losses; end-to-end mini-run (2 epochs, 2-participant val) produces
+  well-formed report + trained db. 25 tests green.
+- Phase 1 success: >90% TAR@FAR5 unseen signers; kill: cluster collapse.
+  Decided on the Kaggle run, not locally.
+
 Session 2 (2026-08-05, later):
 - Dominance detection done (`src/signisa/preprocess/dominance.py`): per-hand
   score = presence-fraction x mean wrist speed, 1.2x hysteresis -> left/right/
@@ -104,6 +134,13 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
 - load_asllex latent shadowing: bases 'what' and 'breakdown' are served by
   'W.H.A.T' / 'break_down' (punctuation sorts before letters). Neither is used
   by the 250; matters only if the vocabulary grows.
+- ShardDataset holds the whole shard set in RAM behind an lru_cache so
+  train/val/eval instances share ONE ~8 GB array; if Kaggle OOMs, switch the
+  build to raw .npy + mmap (noted in data.py).
+- kaggle_train.ipynb's TENSORS_DIR depends on the prep notebook's output slug —
+  it's in the CONFIG cell for that reason.
+- Augmentation RNG is seeded from torch per __getitem__ (DataLoader workers
+  fork numpy state identically; torch reseeds per worker).
 - Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
 
 ## Missing / absent from expected inputs
