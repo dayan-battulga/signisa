@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "signisa"
+version = "0.1.0"
+description = "Known-target ASL sign validation for a Duolingo-style learning app"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
