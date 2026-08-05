@@ -1,8 +1,7 @@
 # Project memory
 
-Created 2026-08-05 (this file did not exist before; CLAUDE.md and
-docs/experiment-backlog.md were also absent from the repo — Phase 0 tasks were
-executed from the session brief instead).
+Created 2026-08-05. CLAUDE.md + docs/ arrived later the same day (they missed
+the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
@@ -28,6 +27,16 @@ executed from the session brief instead).
 - `data/samples/*.parquet` — 30 sample sequences, gitignored, filename = sequence_id.
 
 ## Decisions
+
+Locked (from CLAUDE.md — change only with strong evidence, log changes here):
+- Verifier = ArcFace embedding + per-sign centroids; accept = cosine threshold
+  + margin-over-confusables + open-set rejection. Never plain softmax.
+- Fingerspelling = separate CTC model with FORCED alignment to the known word.
+- Handedness = canonical mirroring at inference; no horizontal-flip augmentation.
+- Extractor = MediaPipe Holistic tier first (matches Kaggle landmarks-only
+  provenance); RTMW is a later accuracy tier A/B'd on ASL Citizen.
+- Evaluation = signer-independent splits always; per-sign FAR/FRR/EER, never
+  just accuracy. Training on Kaggle notebooks; local = prep/tests/inference.
 
 - ASL-LEX gloss matching: 24-entry alias table in `coverage_analysis.py`
   (dad=FATHER, potty=TOILET, haveto=MUST, ...). 233/250 matched; the 17
