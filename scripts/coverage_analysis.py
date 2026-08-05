@@ -116,8 +116,9 @@ def derive_training_labels(signs: list[str], matched: dict[str, pd.Series],
                            counts: pd.DataFrame) -> dict:
     """Canonical visual classes: Kaggle signs resolving to the same ASL-LEX entry merge.
 
-    Canonical gloss = the member that matched the entry directly (not via alias);
-    unmatched signs pass through as their own class.
+    Canonical gloss = the member that matched the entry directly (not via alias) when
+    one exists; singleton alias-only groups keep their Kaggle gloss (e.g. dad, not
+    father). Unmatched signs pass through as their own class.
     """
     groups: dict[str, list[str]] = {}
     for s in signs:

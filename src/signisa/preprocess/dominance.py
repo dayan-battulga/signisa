@@ -22,6 +22,8 @@ def wrist_score(wrist: np.ndarray, fps: float) -> float:
     present = ~np.isnan(wrist).any(axis=1)
     if not present.any():
         return 0.0
+    # ponytail: speed only from consecutive present frames — isolated-frame presence
+    # scores 0 and gaps drop both adjacent steps; per-participant majority absorbs it.
     steps = np.linalg.norm(np.diff(wrist, axis=0), axis=1)  # NaN when either frame missing
     mean_speed = 0.0 if np.isnan(steps).all() else float(np.nanmean(steps)) * fps
     return float(present.mean()) * mean_speed

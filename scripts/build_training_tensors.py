@@ -6,6 +6,8 @@ Local smoke test: python scripts/build_training_tensors.py \
 Full run happens on Kaggle with --landmarks-dir <asl-signs root>.
 
 index.csv row i lives in shard i // SHARD_SIZE at slot i % SHARD_SIZE.
+Note: under --limit the dominance vote is scoped to the limited subset, so
+mirror flags can differ from the full run — fine for smoke tests only.
 """
 
 import argparse
@@ -61,7 +63,7 @@ def main() -> None:
     train = resolve_paths(pd.read_csv(args.train_csv), args.landmarks_dir)
     if train.empty:
         raise SystemExit(f"no train.csv parquets found under {args.landmarks_dir}")
-    if args.limit:
+    if args.limit is not None:
         train = train.head(args.limit)
 
     t0 = time.perf_counter()
@@ -82,7 +84,10 @@ def main() -> None:
     for row in train.itertuples():
         mirrored = row.participant_id in left_pids
         result = preprocess(load_holistic(row.parquet), fps=args.fps, left_dominant=mirrored)
-        shard.append(result.tensor.astype(np.float16))
+        tensor16 = result.tensor.astype(np.float16)
+        # catches float16 overflow from a degenerate shoulder-width normalization
+        assert np.isfinite(tensor16).all(), f"non-finite float16 tensor for {row.sequence_id}"
+        shard.append(tensor16)
         shard_ids.append(row.sequence_id)
         index_rows.append({
             "sequence_id": row.sequence_id,

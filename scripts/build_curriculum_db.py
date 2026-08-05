@@ -34,8 +34,11 @@ def build_curriculum_db() -> dict:
     entries = {}
     for s in ca.CURRICULUM_V1:
         row = matched[s]
-        # strong ASL-LEX neighbors within the 250, canonicalized; self after merge drops out
-        confusables = sorted({canonical[n] for n in strong.get(s, set())} - {canonical[s]})
+        # cluster members UNION strong ASL-LEX neighbors (clusters are connected
+        # components, so a member need not be a direct strong neighbor); self drops out
+        confusables = sorted(
+            ({canonical[n] for n in strong.get(s, set())} | set(cluster_of.get(s, [])))
+            - {canonical[s]})
         assert canonical[s] == s, f"curriculum sign {s} is not canonical"
         entries[s] = {
             "label": s,

@@ -97,7 +97,13 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
   the Kaggle capture rather than true handedness. Irrelevant to us: canonical
   mirroring only needs data-space consistency, not true handedness.
 - Kaggle parquets carry all 543 rows per frame with all-NaN coords when a
-  detector missed — `load_wrists`' filtered read relies on this.
+  detector missed — `load_wrists`' filtered read relies on this (now asserted).
+- wrist_score known ceiling: speed comes only from consecutive present frames,
+  so isolated-frame presence scores 0; per-participant majority voting absorbs
+  it (verified sensible on all 30 real samples).
+- load_asllex latent shadowing: bases 'what' and 'breakdown' are served by
+  'W.H.A.T' / 'break_down' (punctuation sorts before letters). Neither is used
+  by the 250; matters only if the vocabulary grows.
 - Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
 
 ## Missing / absent from expected inputs

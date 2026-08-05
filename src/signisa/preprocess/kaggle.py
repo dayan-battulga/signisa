@@ -30,6 +30,7 @@ def load_wrists(parquet_path) -> tuple[np.ndarray, np.ndarray]:
     ).sort_values("frame")
     left = df[df["type"] == "left_hand"][["x", "y", "z"]].to_numpy(dtype=np.float32)
     right = df[df["type"] == "right_hand"][["x", "y", "z"]].to_numpy(dtype=np.float32)
+    assert len(left) == len(right), f"hand row counts diverge in {parquet_path}"
     return left, right
 
 
