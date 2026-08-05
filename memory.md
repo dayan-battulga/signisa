@@ -1,0 +1,62 @@
+# Project memory
+
+Created 2026-08-05 (this file did not exist before; CLAUDE.md and
+docs/experiment-backlog.md were also absent from the repo — Phase 0 tasks were
+executed from the session brief instead).
+
+## Status
+
+- Phase 0.3 done: pipeline validated on 30 real Kaggle asl-signs parquets
+  (10 signs x 3 signers). All outputs (160, 65, 10), NaN-free.
+  `scripts/validate_pipeline.py` reruns the check.
+- The 16 face-mesh indices in `src/signisa/preprocess/landmarks.py` were verified
+  against real data: brows above eyes above mouth (MediaPipe y down), all 6
+  left/right mirror pairs straddle the nose. **No index changes needed.**
+- No pipeline bugs surfaced on real data; no fixes, so no new regression tests
+  for Task 1. `tests/test_coverage.py` guards the coverage analysis instead.
+- Phase 0.2 done: `scripts/coverage_analysis.py` ->
+  `data/meta/coverage_report.md` + `data/meta/curriculum_candidates.csv`.
+
+## Data locations
+
+- `~/Desktop/dataset/asl-signs.zip` — full 37 GB Kaggle dump. Only metadata +
+  30 sample parquets were extracted (to `~/Desktop/dataset/asl-signs/`); extract
+  more with `unzip asl-signs.zip 'train_landmark_files/<pid>/<seq>.parquet'`.
+- `~/Desktop/dataset/asl-lex/` — ASL-LEX 2.0 OSF export ("Data Files" only).
+  The database is `Data Files/signdata.csv`, copied to
+  `data/meta/asllex_signdata.csv`.
+- `data/samples/*.parquet` — 30 sample sequences, gitignored, filename = sequence_id.
+
+## Decisions
+
+- ASL-LEX gloss matching: 21-entry alias table in `coverage_analysis.py`
+  (dad=FATHER, potty=TOILET, haveto=MUST, ...). 230/250 matched; the 20
+  unmatched are listed in coverage_report.md. kitty/puppy/nap/wake left
+  unmatched on purpose (would collide with cat/dog/sleep/awake).
+- Confusable definition: "any" tie = >=2 shared of {Handshape.2.0,
+  MajorLocation.2.0, Movement.2.0}; "strong" (minimal-pair grade) = shared
+  handshape AND major location. Curriculum clusters use strong ties.
+- v1 curriculum: 50 signs hardcoded as `CURRICULUM_V1` in coverage_analysis.py,
+  8 minimal-pair clusters incl. the 7-sign 5-hand-at-head family cluster
+  (mom/dad/grandma/grandpa/mad/sad/sleep).
+- 204/250 signs also in WLASL-2000.
+
+## Gotchas
+
+- `asllex_signdata.csv` is **latin-1 encoded**, not UTF-8. 2723 rows, 4 dup
+  EntryIDs (deduped on load). Variant glosses carry `_1`/`_2` suffixes.
+- ASL-LEX `NeigborPairs.csv` (7.4M rows, in the OSF export) exists but we
+  compute neighbors from signdata.csv features directly instead.
+- Kaggle coverage is near-uniform (299–415 examples, 19–21 signers per sign) —
+  coverage does not discriminate for curriculum selection.
+- Many real sequences have one hand 100% absent (single-handed signs +
+  left-dominant signers). `preprocess(left_dominant=...)` exists but nothing
+  detects dominance yet — needed before training (open Phase 0/1 item).
+- Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
+
+## Missing / absent from expected inputs
+
+- CLAUDE.md, docs/experiment-backlog.md, memory.md: not in the repo (expected
+  by the Phase 0 brief). This file now seeds memory.md.
+- Everything expected in the datasets was present (sign map, train.csv,
+  parquets, ASL-LEX database CSV). Nothing missing.
