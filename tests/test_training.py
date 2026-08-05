@@ -77,6 +77,11 @@ def test_augmentations_shapes_and_identity():
     c3, f3 = augmented(coords.copy(), confidence.copy(), AugmentConfig(), rng)
     assert c3.shape == coords.shape and f3.shape == confidence.shape
     assert (c3[f3[..., 0] == 0.0] == 0.0).all()  # masked frames/nodes fully zeroed
+    # temporal mask budget: fully-masked frames never exceed mask_total_frac
+    for _ in range(200):
+        _, f = augmented(coords.copy(), np.ones((160, 65, 1)),
+                         AugmentConfig(node_dropout_p=0.0), rng)
+        assert (f[..., 0] == 0.0).all(axis=1).sum() <= int(0.4 * 160)
     # never a flip: the mean x sign of a strongly right-biased cloud can't invert at +-5 deg
     biased = np.abs(coords)
     c4, _ = augmented(biased.copy(), np.ones((160, 65, 1)), AugmentConfig(), rng)
@@ -121,3 +126,39 @@ def test_end_to_end_mini_run(tensors_dir, tmp_path):
 
 def test_parameter_budget():
     assert parameter_count(SignModel(Config())) < 2_000_000
+
+
+def test_far_threshold_guarantee_and_overlap_estimate():
+    from signisa.eval import far_threshold, overlap_estimate
+
+    rng = np.random.default_rng(9)
+    for n in (21, 41, 100, 101, 761):  # n = 1 mod 20 broke the quantile version
+        scores = rng.normal(size=n)
+        thr = far_threshold(scores, 0.05)
+        assert (scores >= thr).mean() <= 0.05
+
+    same = rng.normal(size=50)
+    assert overlap_estimate(same, same.copy()) == 1.0
+    genuine, confusable = rng.normal(10, 1, 50), rng.normal(0, 1, 50)
+    assert overlap_estimate(genuine, confusable) == 0.0
+    # inverted separation (impostors above genuine) counts as full overlap, not zero
+    assert overlap_estimate(confusable, genuine) == 1.0
+    # identical *distributions* at small n stay near 1 (histogram version read ~0.57)
+    assert overlap_estimate(rng.normal(size=50), rng.normal(size=50)) > 0.8
+
+
+def test_arcface_margin_soundness():
+    from signisa.models import ArcFaceHead
+
+    head = ArcFaceHead(8, 4, s=30.0, m=0.3)
+    emb = torch.nn.functional.normalize(torch.randn(64, 8), dim=1)
+    labels = torch.randint(0, 4, (64,))
+    with torch.no_grad():
+        plain = head(emb)
+        margined = head(emb, labels)
+    # margin can only lower the target logit, everywhere including cos near -1
+    target_plain = plain.gather(1, labels[:, None])
+    target_margined = margined.gather(1, labels[:, None])
+    assert (target_margined <= target_plain + 1e-5).all()
+    nontarget = ~torch.nn.functional.one_hot(labels, 4).bool()
+    assert torch.allclose(plain[nontarget], margined[nontarget], atol=1e-5)

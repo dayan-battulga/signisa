@@ -91,22 +91,32 @@ class Embedder(nn.Module):
 
 
 class ArcFaceHead(nn.Module):
-    """Additive angular margin logits: s * cos(theta + m) on the target class."""
+    """Additive angular margin logits: s * cos(theta + m) on the target class.
+
+    Runs in fp32 with autocast disabled: under fp16 the acos clamp epsilon rounds
+    away and cos values at +-1 produce inf gradients.
+    """
 
     def __init__(self, embed_dim: int, n_classes: int, s: float, m: float):
         super().__init__()
         self.weight = nn.Parameter(torch.empty(n_classes, embed_dim))
         nn.init.xavier_uniform_(self.weight)
         self.s, self.m = s, m
+        # past theta = pi - m, cos(theta + m) turns non-monotonic and would REWARD a
+        # badly-wrong target; standard guard falls back to the linear penalty cos - m*sin(m)
+        self.cos_floor = math.cos(math.pi - m)
+        self.linear_penalty = math.sin(math.pi - m) * m
 
     def forward(self, embedding: torch.Tensor, labels: torch.Tensor | None = None) -> torch.Tensor:
-        cos = F.linear(embedding, F.normalize(self.weight, dim=1))  # embedding already unit
-        if labels is None:
-            return self.s * cos
-        theta = torch.acos(cos.clamp(-1.0 + 1e-7, 1.0 - 1e-7))
-        margined = torch.cos(theta + self.m)
-        onehot = F.one_hot(labels, cos.shape[1]).to(cos.dtype)
-        return self.s * (onehot * margined + (1.0 - onehot) * cos)
+        with torch.autocast(device_type=embedding.device.type, enabled=False):
+            cos = F.linear(embedding.float(), F.normalize(self.weight, dim=1).float())
+            if labels is None:
+                return self.s * cos
+            theta = torch.acos(cos.clamp(-1.0 + 1e-7, 1.0 - 1e-7))
+            margined = torch.where(cos > self.cos_floor,
+                                   torch.cos(theta + self.m), cos - self.linear_penalty)
+            onehot = F.one_hot(labels, cos.shape[1]).to(cos.dtype)
+            return self.s * (onehot * margined + (1.0 - onehot) * cos)
 
 
 class SignModel(nn.Module):

@@ -2,7 +2,8 @@
 
 Stored channels are xyz + confidence; velocity and bone channels are re-derived
 here (signisa.preprocess.pipeline.with_derived_channels) so the reconstructed
-(160, 65, 10) float32 matches preprocess() output exactly. Augmentations run
+(160, 65, 10) float32 matches preprocess() output to float16 storage rounding
+(measured max error ~4e-3 on real data). Augmentations run
 BEFORE derivation so derived channels stay consistent. No horizontal flipping
 ever — sequences are already in canonical right-dominant space.
 """
@@ -45,7 +46,8 @@ def augmented(coords: np.ndarray, confidence: np.ndarray, cfg: AugmentConfig,
     target = rng.integers(0, int(cfg.mask_total_frac * t) + 1)
     masked = 0
     while masked < target:
-        span = int(rng.integers(cfg.mask_span_min, cfg.mask_span_max + 1))
+        span = min(int(rng.integers(cfg.mask_span_min, cfg.mask_span_max + 1)),
+                   int(target - masked))  # clamp so spans never exceed the budget
         start = int(rng.integers(0, t - span + 1))
         coords[start:start + span] = 0.0
         confidence[start:start + span] = 0.0
@@ -78,14 +80,15 @@ class ShardDataset(Dataset):
                  aug_config: AugmentConfig | None = None, participants=None):
         tensors_dir = Path(tensors_dir)
         index = pd.read_csv(tensors_dir / "index.csv")
+        self.tensors = _load_shards(str(tensors_dir))
+        assert self.tensors.shape[1:] == (160, 65, 4), self.tensors.shape
+        assert len(index) == len(self.tensors), "index.csv/shard mismatch — stale shards in out-dir?"
         index["row"] = np.arange(len(index))  # position before filtering = shard slot
         if participants is not None:
             index = index[index.participant_id.isin(set(participants))].reset_index(drop=True)
         self.index = index
         self.augment = augment
         self.aug_config = aug_config or AugmentConfig()
-        self.tensors = _load_shards(str(tensors_dir))
-        assert self.tensors.shape[1:] == (160, 65, 4), self.tensors.shape
 
     def __len__(self) -> int:
         return len(self.index)

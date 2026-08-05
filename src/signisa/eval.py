@@ -43,7 +43,10 @@ def build_centroids(embeddings: np.ndarray, label_ids: np.ndarray) -> dict[int, 
 
 
 def eer_of(genuine: np.ndarray, impostor: np.ndarray) -> tuple[float, float]:
-    """(EER, threshold) via the sweep point where FAR and FRR cross."""
+    """(EER, threshold) via the sweep point where FAR and FRR cross.
+
+    O(thresholds x trials) memory — per-sign scale only; never call on pooled arrays.
+    """
     thresholds = np.unique(np.concatenate([genuine, impostor]))
     far = (impostor[None, :] >= thresholds[:, None]).mean(axis=1)
     frr = (genuine[None, :] < thresholds[:, None]).mean(axis=1)
@@ -51,15 +54,28 @@ def eer_of(genuine: np.ndarray, impostor: np.ndarray) -> tuple[float, float]:
     return float((far[i] + frr[i]) / 2.0), float(thresholds[i])
 
 
-def overlap_coefficient(a: np.ndarray, b: np.ndarray, bins: int = 40) -> float:
-    """Histogram overlap in [0, 1]: 1 = identical distributions."""
-    lo, hi = min(a.min(), b.min()), max(a.max(), b.max())
-    if lo == hi:
-        return 1.0
-    edges = np.linspace(lo, hi, bins + 1)
-    pa, _ = np.histogram(a, bins=edges, density=True)
-    pb, _ = np.histogram(b, bins=edges, density=True)
-    return float(np.minimum(pa, pb).sum() * (edges[1] - edges[0]))
+def far_threshold(impostor: np.ndarray, far_target: float) -> float:
+    """Smallest threshold with FAR <= far_target under the >= acceptance rule.
+
+    Order-statistic based (ties included) — unlike an interpolated quantile,
+    the guarantee holds at any n.
+    """
+    s = np.sort(impostor)
+    k = int(np.floor(far_target * len(s)))  # max allowed false accepts
+    bound = s[-1] if k == 0 else s[-(k + 1)]
+    return float(np.nextafter(bound, np.inf))
+
+
+def overlap_estimate(genuine: np.ndarray, confusable: np.ndarray) -> float:
+    """2 * (1 - AUC), in [0, 1]: 1 = indistinguishable distributions, 0 = separated.
+
+    Rank-based, so unbiased at small sample sizes (a 40-bin histogram overlap
+    measures ~0.57 for identical 50-sample distributions and under-flags collapse).
+    """
+    greater = (genuine[:, None] > confusable[None, :]).mean()
+    ties = (genuine[:, None] == confusable[None, :]).mean()
+    auc = greater + 0.5 * ties
+    return float(np.clip(2.0 * (1.0 - auc), 0.0, 1.0))
 
 
 def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_path,
@@ -113,7 +129,7 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
 
     genuine_all = tdf[tdf.genuine].score.to_numpy()
     impostor_all = tdf[~tdf.genuine].score.to_numpy()
-    far5_global = float(np.quantile(impostor_all, 1.0 - cfg.far_target))
+    far5_global = far_threshold(impostor_all, cfg.far_target)
     tar_at_far = float((genuine_all >= far5_global).mean())
 
     per_sign = {}
@@ -128,7 +144,7 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
         eer, thr = eer_of(g, i)
         per_sign[sign] = {"n_genuine": len(g), "n_impostor": len(i), "eer": eer,
                           "eer_threshold": thr,
-                          "far5_threshold": float(np.quantile(i, 1.0 - cfg.far_target))}
+                          "far5_threshold": far_threshold(i, cfg.far_target)}
 
     clusters = []
     for members in db["clusters"]:
@@ -136,7 +152,7 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
         g = tdf[tdf.genuine & tdf.target.isin(member_ids)].score.to_numpy()
         c = tdf[~tdf.genuine & tdf.target.isin(member_ids)
                 & tdf.attempt.isin(member_ids)].score.to_numpy()
-        overlap = overlap_coefficient(g, c) if len(g) and len(c) else None
+        overlap = overlap_estimate(g, c) if len(g) and len(c) else None
         clusters.append({"members": members, "n_genuine": len(g), "n_confusable": len(c),
                          "overlap": overlap,
                          "collapsed": overlap is not None and overlap > cfg.cluster_overlap_flag})

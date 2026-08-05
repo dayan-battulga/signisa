@@ -141,6 +141,18 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
   it's in the CONFIG cell for that reason.
 - Augmentation RNG is seeded from torch per __getitem__ (DataLoader workers
   fork numpy state identically; torch reseeds per worker).
+- Adversarial-review fixes (session 3): temporal-mask spans are clamped to the
+  40% budget (loop overshot to 48% before); ArcFace head runs fp32 with
+  autocast disabled (fp16 acos at cos=+-1 gave inf grads) and guards the
+  theta > pi-m region with the standard linear-penalty fallback; FAR
+  thresholds are order-statistic based (interpolated quantiles exceeded the
+  5% target at n = 1 mod 20); cluster overlap is rank/AUC-based, 2*(1-AUC)
+  (40-bin histogram overlap read ~0.57 for identical 50-sample dists and
+  under-flagged collapse). Inverted separation (impostors above genuine)
+  reports overlap 1.0 by design.
+- Known accepted nitpicks: scheduler.step() advances on AMP-skipped steps
+  (rare after the fp32 ArcFace fix); eer_of is O(thresholds x trials) memory —
+  per-sign scale only, documented in its docstring.
 - Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
 
 ## Missing / absent from expected inputs
