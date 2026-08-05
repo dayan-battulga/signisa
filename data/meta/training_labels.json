@@ -1,0 +1,2475 @@
+{
+ "n_classes": 246,
+ "classes": [
+  {
+   "label": "TV",
+   "members": [
+    "TV"
+   ],
+   "n_examples": 385,
+   "asllex_entry": "TV",
+   "id": 0
+  },
+  {
+   "label": "after",
+   "members": [
+    "after"
+   ],
+   "n_examples": 347,
+   "asllex_entry": "after",
+   "id": 1
+  },
+  {
+   "label": "airplane",
+   "members": [
+    "airplane"
+   ],
+   "n_examples": 393,
+   "asllex_entry": "airplane",
+   "id": 2
+  },
+  {
+   "label": "all",
+   "members": [
+    "all"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "all",
+   "id": 3
+  },
+  {
+   "label": "alligator",
+   "members": [
+    "alligator"
+   ],
+   "n_examples": 390,
+   "asllex_entry": null,
+   "id": 4
+  },
+  {
+   "label": "animal",
+   "members": [
+    "animal"
+   ],
+   "n_examples": 348,
+   "asllex_entry": "animal",
+   "id": 5
+  },
+  {
+   "label": "another",
+   "members": [
+    "another"
+   ],
+   "n_examples": 370,
+   "asllex_entry": "other",
+   "id": 6
+  },
+  {
+   "label": "any",
+   "members": [
+    "any"
+   ],
+   "n_examples": 355,
+   "asllex_entry": "any",
+   "id": 7
+  },
+  {
+   "label": "apple",
+   "members": [
+    "apple"
+   ],
+   "n_examples": 377,
+   "asllex_entry": "apple",
+   "id": 8
+  },
+  {
+   "label": "arm",
+   "members": [
+    "arm"
+   ],
+   "n_examples": 362,
+   "asllex_entry": "arm",
+   "id": 9
+  },
+  {
+   "label": "aunt",
+   "members": [
+    "aunt"
+   ],
+   "n_examples": 391,
+   "asllex_entry": "aunt",
+   "id": 10
+  },
+  {
+   "label": "awake",
+   "members": [
+    "awake",
+    "wake"
+   ],
+   "n_examples": 802,
+   "asllex_entry": "awake",
+   "id": 11
+  },
+  {
+   "label": "backyard",
+   "members": [
+    "backyard"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "backyard",
+   "id": 12
+  },
+  {
+   "label": "bad",
+   "members": [
+    "bad"
+   ],
+   "n_examples": 376,
+   "asllex_entry": "bad",
+   "id": 13
+  },
+  {
+   "label": "balloon",
+   "members": [
+    "balloon"
+   ],
+   "n_examples": 393,
+   "asllex_entry": "balloon",
+   "id": 14
+  },
+  {
+   "label": "bath",
+   "members": [
+    "bath"
+   ],
+   "n_examples": 351,
+   "asllex_entry": "bath",
+   "id": 15
+  },
+  {
+   "label": "because",
+   "members": [
+    "because"
+   ],
+   "n_examples": 395,
+   "asllex_entry": "because",
+   "id": 16
+  },
+  {
+   "label": "bed",
+   "members": [
+    "bed"
+   ],
+   "n_examples": 353,
+   "asllex_entry": "bed",
+   "id": 17
+  },
+  {
+   "label": "bedroom",
+   "members": [
+    "bedroom"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "bedroom",
+   "id": 18
+  },
+  {
+   "label": "bee",
+   "members": [
+    "bee"
+   ],
+   "n_examples": 395,
+   "asllex_entry": "bee_1",
+   "id": 19
+  },
+  {
+   "label": "before",
+   "members": [
+    "before"
+   ],
+   "n_examples": 354,
+   "asllex_entry": "before",
+   "id": 20
+  },
+  {
+   "label": "beside",
+   "members": [
+    "beside"
+   ],
+   "n_examples": 310,
+   "asllex_entry": "next_to",
+   "id": 21
+  },
+  {
+   "label": "better",
+   "members": [
+    "better"
+   ],
+   "n_examples": 376,
+   "asllex_entry": "better",
+   "id": 22
+  },
+  {
+   "label": "bird",
+   "members": [
+    "bird"
+   ],
+   "n_examples": 404,
+   "asllex_entry": "bird",
+   "id": 23
+  },
+  {
+   "label": "black",
+   "members": [
+    "black"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "black",
+   "id": 24
+  },
+  {
+   "label": "blow",
+   "members": [
+    "blow"
+   ],
+   "n_examples": 391,
+   "asllex_entry": "blow",
+   "id": 25
+  },
+  {
+   "label": "blue",
+   "members": [
+    "blue"
+   ],
+   "n_examples": 362,
+   "asllex_entry": "blue",
+   "id": 26
+  },
+  {
+   "label": "boat",
+   "members": [
+    "boat"
+   ],
+   "n_examples": 370,
+   "asllex_entry": "boat",
+   "id": 27
+  },
+  {
+   "label": "book",
+   "members": [
+    "book"
+   ],
+   "n_examples": 368,
+   "asllex_entry": "book",
+   "id": 28
+  },
+  {
+   "label": "boy",
+   "members": [
+    "boy"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "boy",
+   "id": 29
+  },
+  {
+   "label": "brother",
+   "members": [
+    "brother"
+   ],
+   "n_examples": 395,
+   "asllex_entry": "brother",
+   "id": 30
+  },
+  {
+   "label": "brown",
+   "members": [
+    "brown"
+   ],
+   "n_examples": 403,
+   "asllex_entry": "brown",
+   "id": 31
+  },
+  {
+   "label": "bug",
+   "members": [
+    "bug"
+   ],
+   "n_examples": 387,
+   "asllex_entry": "bug",
+   "id": 32
+  },
+  {
+   "label": "bye",
+   "members": [
+    "bye"
+   ],
+   "n_examples": 402,
+   "asllex_entry": "bye",
+   "id": 33
+  },
+  {
+   "label": "callonphone",
+   "members": [
+    "callonphone"
+   ],
+   "n_examples": 385,
+   "asllex_entry": "telephone",
+   "id": 34
+  },
+  {
+   "label": "can",
+   "members": [
+    "can"
+   ],
+   "n_examples": 366,
+   "asllex_entry": "can",
+   "id": 35
+  },
+  {
+   "label": "car",
+   "members": [
+    "car"
+   ],
+   "n_examples": 353,
+   "asllex_entry": "car",
+   "id": 36
+  },
+  {
+   "label": "carrot",
+   "members": [
+    "carrot"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "carrot",
+   "id": 37
+  },
+  {
+   "label": "cat",
+   "members": [
+    "cat",
+    "kitty"
+   ],
+   "n_examples": 789,
+   "asllex_entry": "cat",
+   "id": 38
+  },
+  {
+   "label": "cereal",
+   "members": [
+    "cereal"
+   ],
+   "n_examples": 379,
+   "asllex_entry": "cereal",
+   "id": 39
+  },
+  {
+   "label": "chair",
+   "members": [
+    "chair"
+   ],
+   "n_examples": 368,
+   "asllex_entry": "chair",
+   "id": 40
+  },
+  {
+   "label": "cheek",
+   "members": [
+    "cheek"
+   ],
+   "n_examples": 375,
+   "asllex_entry": "cheek",
+   "id": 41
+  },
+  {
+   "label": "child",
+   "members": [
+    "child"
+   ],
+   "n_examples": 348,
+   "asllex_entry": "child",
+   "id": 42
+  },
+  {
+   "label": "chin",
+   "members": [
+    "chin"
+   ],
+   "n_examples": 346,
+   "asllex_entry": "chin_2",
+   "id": 43
+  },
+  {
+   "label": "chocolate",
+   "members": [
+    "chocolate"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "chocolate",
+   "id": 44
+  },
+  {
+   "label": "clean",
+   "members": [
+    "clean"
+   ],
+   "n_examples": 355,
+   "asllex_entry": "clean",
+   "id": 45
+  },
+  {
+   "label": "close",
+   "members": [
+    "close"
+   ],
+   "n_examples": 374,
+   "asllex_entry": "close",
+   "id": 46
+  },
+  {
+   "label": "closet",
+   "members": [
+    "closet"
+   ],
+   "n_examples": 393,
+   "asllex_entry": "closet_1",
+   "id": 47
+  },
+  {
+   "label": "cloud",
+   "members": [
+    "cloud"
+   ],
+   "n_examples": 378,
+   "asllex_entry": "cloud_1",
+   "id": 48
+  },
+  {
+   "label": "clown",
+   "members": [
+    "clown"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "clown",
+   "id": 49
+  },
+  {
+   "label": "cow",
+   "members": [
+    "cow"
+   ],
+   "n_examples": 404,
+   "asllex_entry": "cow",
+   "id": 50
+  },
+  {
+   "label": "cowboy",
+   "members": [
+    "cowboy"
+   ],
+   "n_examples": 378,
+   "asllex_entry": "cowboy",
+   "id": 51
+  },
+  {
+   "label": "cry",
+   "members": [
+    "cry"
+   ],
+   "n_examples": 390,
+   "asllex_entry": "cry",
+   "id": 52
+  },
+  {
+   "label": "cut",
+   "members": [
+    "cut"
+   ],
+   "n_examples": 369,
+   "asllex_entry": "cut_1",
+   "id": 53
+  },
+  {
+   "label": "cute",
+   "members": [
+    "cute"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "cute_1",
+   "id": 54
+  },
+  {
+   "label": "dad",
+   "members": [
+    "dad"
+   ],
+   "n_examples": 378,
+   "asllex_entry": "father",
+   "id": 55
+  },
+  {
+   "label": "dance",
+   "members": [
+    "dance"
+   ],
+   "n_examples": 312,
+   "asllex_entry": "dance",
+   "id": 56
+  },
+  {
+   "label": "dirty",
+   "members": [
+    "dirty"
+   ],
+   "n_examples": 365,
+   "asllex_entry": "dirty",
+   "id": 57
+  },
+  {
+   "label": "dog",
+   "members": [
+    "dog",
+    "puppy"
+   ],
+   "n_examples": 737,
+   "asllex_entry": "dog",
+   "id": 58
+  },
+  {
+   "label": "doll",
+   "members": [
+    "doll"
+   ],
+   "n_examples": 400,
+   "asllex_entry": "doll",
+   "id": 59
+  },
+  {
+   "label": "donkey",
+   "members": [
+    "donkey"
+   ],
+   "n_examples": 410,
+   "asllex_entry": "donkey",
+   "id": 60
+  },
+  {
+   "label": "down",
+   "members": [
+    "down"
+   ],
+   "n_examples": 327,
+   "asllex_entry": "down",
+   "id": 61
+  },
+  {
+   "label": "drawer",
+   "members": [
+    "drawer"
+   ],
+   "n_examples": 373,
+   "asllex_entry": "drawer",
+   "id": 62
+  },
+  {
+   "label": "drink",
+   "members": [
+    "drink"
+   ],
+   "n_examples": 400,
+   "asllex_entry": "drink",
+   "id": 63
+  },
+  {
+   "label": "drop",
+   "members": [
+    "drop"
+   ],
+   "n_examples": 356,
+   "asllex_entry": "drop",
+   "id": 64
+  },
+  {
+   "label": "dry",
+   "members": [
+    "dry"
+   ],
+   "n_examples": 391,
+   "asllex_entry": "dry",
+   "id": 65
+  },
+  {
+   "label": "dryer",
+   "members": [
+    "dryer"
+   ],
+   "n_examples": 369,
+   "asllex_entry": "dryer",
+   "id": 66
+  },
+  {
+   "label": "duck",
+   "members": [
+    "duck"
+   ],
+   "n_examples": 405,
+   "asllex_entry": "duck",
+   "id": 67
+  },
+  {
+   "label": "ear",
+   "members": [
+    "ear"
+   ],
+   "n_examples": 389,
+   "asllex_entry": "ear",
+   "id": 68
+  },
+  {
+   "label": "elephant",
+   "members": [
+    "elephant"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "elephant",
+   "id": 69
+  },
+  {
+   "label": "empty",
+   "members": [
+    "empty"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "empty_1",
+   "id": 70
+  },
+  {
+   "label": "every",
+   "members": [
+    "every"
+   ],
+   "n_examples": 368,
+   "asllex_entry": null,
+   "id": 71
+  },
+  {
+   "label": "eye",
+   "members": [
+    "eye"
+   ],
+   "n_examples": 395,
+   "asllex_entry": "eyes",
+   "id": 72
+  },
+  {
+   "label": "face",
+   "members": [
+    "face"
+   ],
+   "n_examples": 370,
+   "asllex_entry": "face",
+   "id": 73
+  },
+  {
+   "label": "fall",
+   "members": [
+    "fall"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "fall_1",
+   "id": 74
+  },
+  {
+   "label": "farm",
+   "members": [
+    "farm"
+   ],
+   "n_examples": 397,
+   "asllex_entry": "farm",
+   "id": 75
+  },
+  {
+   "label": "fast",
+   "members": [
+    "fast"
+   ],
+   "n_examples": 362,
+   "asllex_entry": "fast",
+   "id": 76
+  },
+  {
+   "label": "feet",
+   "members": [
+    "feet"
+   ],
+   "n_examples": 372,
+   "asllex_entry": null,
+   "id": 77
+  },
+  {
+   "label": "find",
+   "members": [
+    "find"
+   ],
+   "n_examples": 397,
+   "asllex_entry": "find",
+   "id": 78
+  },
+  {
+   "label": "fine",
+   "members": [
+    "fine"
+   ],
+   "n_examples": 360,
+   "asllex_entry": "fine_1",
+   "id": 79
+  },
+  {
+   "label": "finger",
+   "members": [
+    "finger"
+   ],
+   "n_examples": 379,
+   "asllex_entry": "finger",
+   "id": 80
+  },
+  {
+   "label": "finish",
+   "members": [
+    "finish"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "finish",
+   "id": 81
+  },
+  {
+   "label": "fireman",
+   "members": [
+    "fireman"
+   ],
+   "n_examples": 402,
+   "asllex_entry": "fireman",
+   "id": 82
+  },
+  {
+   "label": "first",
+   "members": [
+    "first"
+   ],
+   "n_examples": 398,
+   "asllex_entry": "first",
+   "id": 83
+  },
+  {
+   "label": "fish",
+   "members": [
+    "fish"
+   ],
+   "n_examples": 380,
+   "asllex_entry": "fish",
+   "id": 84
+  },
+  {
+   "label": "flag",
+   "members": [
+    "flag"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "flag",
+   "id": 85
+  },
+  {
+   "label": "flower",
+   "members": [
+    "flower"
+   ],
+   "n_examples": 396,
+   "asllex_entry": "flower",
+   "id": 86
+  },
+  {
+   "label": "food",
+   "members": [
+    "food"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "eat_1",
+   "id": 87
+  },
+  {
+   "label": "for",
+   "members": [
+    "for"
+   ],
+   "n_examples": 384,
+   "asllex_entry": "for",
+   "id": 88
+  },
+  {
+   "label": "frenchfries",
+   "members": [
+    "frenchfries"
+   ],
+   "n_examples": 384,
+   "asllex_entry": "frenchfries",
+   "id": 89
+  },
+  {
+   "label": "frog",
+   "members": [
+    "frog"
+   ],
+   "n_examples": 396,
+   "asllex_entry": "frog",
+   "id": 90
+  },
+  {
+   "label": "garbage",
+   "members": [
+    "garbage"
+   ],
+   "n_examples": 371,
+   "asllex_entry": null,
+   "id": 91
+  },
+  {
+   "label": "gift",
+   "members": [
+    "gift"
+   ],
+   "n_examples": 393,
+   "asllex_entry": "gift",
+   "id": 92
+  },
+  {
+   "label": "giraffe",
+   "members": [
+    "giraffe"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "giraffe",
+   "id": 93
+  },
+  {
+   "label": "girl",
+   "members": [
+    "girl"
+   ],
+   "n_examples": 378,
+   "asllex_entry": "girl",
+   "id": 94
+  },
+  {
+   "label": "give",
+   "members": [
+    "give"
+   ],
+   "n_examples": 346,
+   "asllex_entry": "give",
+   "id": 95
+  },
+  {
+   "label": "glasswindow",
+   "members": [
+    "glasswindow"
+   ],
+   "n_examples": 390,
+   "asllex_entry": "window",
+   "id": 96
+  },
+  {
+   "label": "go",
+   "members": [
+    "go"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "go",
+   "id": 97
+  },
+  {
+   "label": "goose",
+   "members": [
+    "goose"
+   ],
+   "n_examples": 394,
+   "asllex_entry": null,
+   "id": 98
+  },
+  {
+   "label": "grandma",
+   "members": [
+    "grandma"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "grandmother",
+   "id": 99
+  },
+  {
+   "label": "grandpa",
+   "members": [
+    "grandpa"
+   ],
+   "n_examples": 387,
+   "asllex_entry": "grandfather",
+   "id": 100
+  },
+  {
+   "label": "grass",
+   "members": [
+    "grass"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "grass",
+   "id": 101
+  },
+  {
+   "label": "green",
+   "members": [
+    "green"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "green",
+   "id": 102
+  },
+  {
+   "label": "gum",
+   "members": [
+    "gum"
+   ],
+   "n_examples": 390,
+   "asllex_entry": "gum",
+   "id": 103
+  },
+  {
+   "label": "hair",
+   "members": [
+    "hair"
+   ],
+   "n_examples": 385,
+   "asllex_entry": "hair",
+   "id": 104
+  },
+  {
+   "label": "happy",
+   "members": [
+    "happy"
+   ],
+   "n_examples": 379,
+   "asllex_entry": "happy",
+   "id": 105
+  },
+  {
+   "label": "hat",
+   "members": [
+    "hat"
+   ],
+   "n_examples": 342,
+   "asllex_entry": "hat",
+   "id": 106
+  },
+  {
+   "label": "hate",
+   "members": [
+    "hate"
+   ],
+   "n_examples": 358,
+   "asllex_entry": "hate",
+   "id": 107
+  },
+  {
+   "label": "have",
+   "members": [
+    "have"
+   ],
+   "n_examples": 337,
+   "asllex_entry": "have",
+   "id": 108
+  },
+  {
+   "label": "haveto",
+   "members": [
+    "haveto"
+   ],
+   "n_examples": 348,
+   "asllex_entry": "must",
+   "id": 109
+  },
+  {
+   "label": "head",
+   "members": [
+    "head"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "head",
+   "id": 110
+  },
+  {
+   "label": "hear",
+   "members": [
+    "hear"
+   ],
+   "n_examples": 405,
+   "asllex_entry": "hear_1",
+   "id": 111
+  },
+  {
+   "label": "helicopter",
+   "members": [
+    "helicopter"
+   ],
+   "n_examples": 379,
+   "asllex_entry": "helicopter",
+   "id": 112
+  },
+  {
+   "label": "hello",
+   "members": [
+    "hello"
+   ],
+   "n_examples": 390,
+   "asllex_entry": "hello",
+   "id": 113
+  },
+  {
+   "label": "hen",
+   "members": [
+    "hen"
+   ],
+   "n_examples": 377,
+   "asllex_entry": "hen",
+   "id": 114
+  },
+  {
+   "label": "hesheit",
+   "members": [
+    "hesheit"
+   ],
+   "n_examples": 357,
+   "asllex_entry": null,
+   "id": 115
+  },
+  {
+   "label": "hide",
+   "members": [
+    "hide"
+   ],
+   "n_examples": 363,
+   "asllex_entry": "hide",
+   "id": 116
+  },
+  {
+   "label": "high",
+   "members": [
+    "high"
+   ],
+   "n_examples": 375,
+   "asllex_entry": "high",
+   "id": 117
+  },
+  {
+   "label": "home",
+   "members": [
+    "home"
+   ],
+   "n_examples": 395,
+   "asllex_entry": "home",
+   "id": 118
+  },
+  {
+   "label": "horse",
+   "members": [
+    "horse"
+   ],
+   "n_examples": 391,
+   "asllex_entry": "horse",
+   "id": 119
+  },
+  {
+   "label": "hot",
+   "members": [
+    "hot"
+   ],
+   "n_examples": 383,
+   "asllex_entry": "hot",
+   "id": 120
+  },
+  {
+   "label": "hungry",
+   "members": [
+    "hungry"
+   ],
+   "n_examples": 385,
+   "asllex_entry": "hungry",
+   "id": 121
+  },
+  {
+   "label": "icecream",
+   "members": [
+    "icecream"
+   ],
+   "n_examples": 398,
+   "asllex_entry": "icecream",
+   "id": 122
+  },
+  {
+   "label": "if",
+   "members": [
+    "if"
+   ],
+   "n_examples": 366,
+   "asllex_entry": "if",
+   "id": 123
+  },
+  {
+   "label": "into",
+   "members": [
+    "into"
+   ],
+   "n_examples": 364,
+   "asllex_entry": null,
+   "id": 124
+  },
+  {
+   "label": "jacket",
+   "members": [
+    "jacket"
+   ],
+   "n_examples": 336,
+   "asllex_entry": "jacket",
+   "id": 125
+  },
+  {
+   "label": "jeans",
+   "members": [
+    "jeans"
+   ],
+   "n_examples": 382,
+   "asllex_entry": null,
+   "id": 126
+  },
+  {
+   "label": "jump",
+   "members": [
+    "jump"
+   ],
+   "n_examples": 383,
+   "asllex_entry": "jump",
+   "id": 127
+  },
+  {
+   "label": "kiss",
+   "members": [
+    "kiss"
+   ],
+   "n_examples": 396,
+   "asllex_entry": "kiss",
+   "id": 128
+  },
+  {
+   "label": "lamp",
+   "members": [
+    "lamp"
+   ],
+   "n_examples": 370,
+   "asllex_entry": "lamp",
+   "id": 129
+  },
+  {
+   "label": "later",
+   "members": [
+    "later"
+   ],
+   "n_examples": 377,
+   "asllex_entry": "later",
+   "id": 130
+  },
+  {
+   "label": "like",
+   "members": [
+    "like"
+   ],
+   "n_examples": 376,
+   "asllex_entry": "like",
+   "id": 131
+  },
+  {
+   "label": "lion",
+   "members": [
+    "lion"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "lion",
+   "id": 132
+  },
+  {
+   "label": "lips",
+   "members": [
+    "lips"
+   ],
+   "n_examples": 402,
+   "asllex_entry": "lips",
+   "id": 133
+  },
+  {
+   "label": "listen",
+   "members": [
+    "listen"
+   ],
+   "n_examples": 415,
+   "asllex_entry": "listen",
+   "id": 134
+  },
+  {
+   "label": "look",
+   "members": [
+    "look"
+   ],
+   "n_examples": 414,
+   "asllex_entry": "look_at",
+   "id": 135
+  },
+  {
+   "label": "loud",
+   "members": [
+    "loud"
+   ],
+   "n_examples": 389,
+   "asllex_entry": "loud",
+   "id": 136
+  },
+  {
+   "label": "mad",
+   "members": [
+    "mad"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "mad",
+   "id": 137
+  },
+  {
+   "label": "make",
+   "members": [
+    "make"
+   ],
+   "n_examples": 398,
+   "asllex_entry": "make",
+   "id": 138
+  },
+  {
+   "label": "man",
+   "members": [
+    "man"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "man",
+   "id": 139
+  },
+  {
+   "label": "many",
+   "members": [
+    "many"
+   ],
+   "n_examples": 377,
+   "asllex_entry": "many",
+   "id": 140
+  },
+  {
+   "label": "milk",
+   "members": [
+    "milk"
+   ],
+   "n_examples": 377,
+   "asllex_entry": "milk",
+   "id": 141
+  },
+  {
+   "label": "minemy",
+   "members": [
+    "minemy"
+   ],
+   "n_examples": 376,
+   "asllex_entry": "my",
+   "id": 142
+  },
+  {
+   "label": "mitten",
+   "members": [
+    "mitten"
+   ],
+   "n_examples": 377,
+   "asllex_entry": null,
+   "id": 143
+  },
+  {
+   "label": "mom",
+   "members": [
+    "mom"
+   ],
+   "n_examples": 395,
+   "asllex_entry": "mother",
+   "id": 144
+  },
+  {
+   "label": "moon",
+   "members": [
+    "moon"
+   ],
+   "n_examples": 380,
+   "asllex_entry": "moon",
+   "id": 145
+  },
+  {
+   "label": "morning",
+   "members": [
+    "morning"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "morning",
+   "id": 146
+  },
+  {
+   "label": "mouse",
+   "members": [
+    "mouse"
+   ],
+   "n_examples": 408,
+   "asllex_entry": "mouse",
+   "id": 147
+  },
+  {
+   "label": "mouth",
+   "members": [
+    "mouth"
+   ],
+   "n_examples": 391,
+   "asllex_entry": "mouth",
+   "id": 148
+  },
+  {
+   "label": "napkin",
+   "members": [
+    "napkin"
+   ],
+   "n_examples": 398,
+   "asllex_entry": "napkin",
+   "id": 149
+  },
+  {
+   "label": "night",
+   "members": [
+    "night"
+   ],
+   "n_examples": 336,
+   "asllex_entry": "night",
+   "id": 150
+  },
+  {
+   "label": "no",
+   "members": [
+    "no"
+   ],
+   "n_examples": 370,
+   "asllex_entry": "no",
+   "id": 151
+  },
+  {
+   "label": "noisy",
+   "members": [
+    "noisy"
+   ],
+   "n_examples": 361,
+   "asllex_entry": "noise",
+   "id": 152
+  },
+  {
+   "label": "nose",
+   "members": [
+    "nose"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "nose",
+   "id": 153
+  },
+  {
+   "label": "not",
+   "members": [
+    "not"
+   ],
+   "n_examples": 377,
+   "asllex_entry": "not",
+   "id": 154
+  },
+  {
+   "label": "now",
+   "members": [
+    "now"
+   ],
+   "n_examples": 369,
+   "asllex_entry": "now",
+   "id": 155
+  },
+  {
+   "label": "nuts",
+   "members": [
+    "nuts"
+   ],
+   "n_examples": 402,
+   "asllex_entry": "nut",
+   "id": 156
+  },
+  {
+   "label": "old",
+   "members": [
+    "old"
+   ],
+   "n_examples": 389,
+   "asllex_entry": "old",
+   "id": 157
+  },
+  {
+   "label": "on",
+   "members": [
+    "on"
+   ],
+   "n_examples": 368,
+   "asllex_entry": "on",
+   "id": 158
+  },
+  {
+   "label": "open",
+   "members": [
+    "open"
+   ],
+   "n_examples": 354,
+   "asllex_entry": "open",
+   "id": 159
+  },
+  {
+   "label": "orange",
+   "members": [
+    "orange"
+   ],
+   "n_examples": 390,
+   "asllex_entry": "orange",
+   "id": 160
+  },
+  {
+   "label": "outside",
+   "members": [
+    "outside"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "outside",
+   "id": 161
+  },
+  {
+   "label": "owie",
+   "members": [
+    "owie"
+   ],
+   "n_examples": 365,
+   "asllex_entry": "hurt",
+   "id": 162
+  },
+  {
+   "label": "owl",
+   "members": [
+    "owl"
+   ],
+   "n_examples": 396,
+   "asllex_entry": "owl",
+   "id": 163
+  },
+  {
+   "label": "pajamas",
+   "members": [
+    "pajamas"
+   ],
+   "n_examples": 389,
+   "asllex_entry": null,
+   "id": 164
+  },
+  {
+   "label": "pen",
+   "members": [
+    "pen"
+   ],
+   "n_examples": 399,
+   "asllex_entry": "pen",
+   "id": 165
+  },
+  {
+   "label": "pencil",
+   "members": [
+    "pencil"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "pencil",
+   "id": 166
+  },
+  {
+   "label": "penny",
+   "members": [
+    "penny"
+   ],
+   "n_examples": 390,
+   "asllex_entry": "penny",
+   "id": 167
+  },
+  {
+   "label": "person",
+   "members": [
+    "person"
+   ],
+   "n_examples": 312,
+   "asllex_entry": "person",
+   "id": 168
+  },
+  {
+   "label": "pig",
+   "members": [
+    "pig"
+   ],
+   "n_examples": 368,
+   "asllex_entry": "pig",
+   "id": 169
+  },
+  {
+   "label": "pizza",
+   "members": [
+    "pizza"
+   ],
+   "n_examples": 396,
+   "asllex_entry": "pizza_1",
+   "id": 170
+  },
+  {
+   "label": "please",
+   "members": [
+    "please"
+   ],
+   "n_examples": 384,
+   "asllex_entry": "please",
+   "id": 171
+  },
+  {
+   "label": "police",
+   "members": [
+    "police"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "policeman",
+   "id": 172
+  },
+  {
+   "label": "pool",
+   "members": [
+    "pool"
+   ],
+   "n_examples": 363,
+   "asllex_entry": "pool",
+   "id": 173
+  },
+  {
+   "label": "potty",
+   "members": [
+    "potty"
+   ],
+   "n_examples": 351,
+   "asllex_entry": "toilet",
+   "id": 174
+  },
+  {
+   "label": "pretend",
+   "members": [
+    "pretend"
+   ],
+   "n_examples": 404,
+   "asllex_entry": "pretend",
+   "id": 175
+  },
+  {
+   "label": "pretty",
+   "members": [
+    "pretty"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "pretty",
+   "id": 176
+  },
+  {
+   "label": "puzzle",
+   "members": [
+    "puzzle"
+   ],
+   "n_examples": 342,
+   "asllex_entry": null,
+   "id": 177
+  },
+  {
+   "label": "quiet",
+   "members": [
+    "quiet"
+   ],
+   "n_examples": 358,
+   "asllex_entry": "quiet",
+   "id": 178
+  },
+  {
+   "label": "radio",
+   "members": [
+    "radio"
+   ],
+   "n_examples": 387,
+   "asllex_entry": "radio",
+   "id": 179
+  },
+  {
+   "label": "rain",
+   "members": [
+    "rain"
+   ],
+   "n_examples": 381,
+   "asllex_entry": "rain",
+   "id": 180
+  },
+  {
+   "label": "read",
+   "members": [
+    "read"
+   ],
+   "n_examples": 362,
+   "asllex_entry": "read",
+   "id": 181
+  },
+  {
+   "label": "red",
+   "members": [
+    "red"
+   ],
+   "n_examples": 379,
+   "asllex_entry": "red",
+   "id": 182
+  },
+  {
+   "label": "refrigerator",
+   "members": [
+    "refrigerator"
+   ],
+   "n_examples": 363,
+   "asllex_entry": "refrigerator",
+   "id": 183
+  },
+  {
+   "label": "ride",
+   "members": [
+    "ride"
+   ],
+   "n_examples": 347,
+   "asllex_entry": "ride_1",
+   "id": 184
+  },
+  {
+   "label": "room",
+   "members": [
+    "room"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "room",
+   "id": 185
+  },
+  {
+   "label": "sad",
+   "members": [
+    "sad"
+   ],
+   "n_examples": 391,
+   "asllex_entry": "sad",
+   "id": 186
+  },
+  {
+   "label": "same",
+   "members": [
+    "same"
+   ],
+   "n_examples": 380,
+   "asllex_entry": "same_1",
+   "id": 187
+  },
+  {
+   "label": "say",
+   "members": [
+    "say"
+   ],
+   "n_examples": 377,
+   "asllex_entry": null,
+   "id": 188
+  },
+  {
+   "label": "scissors",
+   "members": [
+    "scissors"
+   ],
+   "n_examples": 369,
+   "asllex_entry": "scissors",
+   "id": 189
+  },
+  {
+   "label": "see",
+   "members": [
+    "see"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "see",
+   "id": 190
+  },
+  {
+   "label": "shhh",
+   "members": [
+    "shhh"
+   ],
+   "n_examples": 411,
+   "asllex_entry": null,
+   "id": 191
+  },
+  {
+   "label": "shirt",
+   "members": [
+    "shirt"
+   ],
+   "n_examples": 352,
+   "asllex_entry": "shirt",
+   "id": 192
+  },
+  {
+   "label": "shoe",
+   "members": [
+    "shoe"
+   ],
+   "n_examples": 364,
+   "asllex_entry": "shoes",
+   "id": 193
+  },
+  {
+   "label": "shower",
+   "members": [
+    "shower"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "shower",
+   "id": 194
+  },
+  {
+   "label": "sick",
+   "members": [
+    "sick"
+   ],
+   "n_examples": 380,
+   "asllex_entry": "sick",
+   "id": 195
+  },
+  {
+   "label": "sleep",
+   "members": [
+    "nap",
+    "sleep"
+   ],
+   "n_examples": 771,
+   "asllex_entry": "sleep",
+   "id": 196
+  },
+  {
+   "label": "sleepy",
+   "members": [
+    "sleepy"
+   ],
+   "n_examples": 403,
+   "asllex_entry": null,
+   "id": 197
+  },
+  {
+   "label": "smile",
+   "members": [
+    "smile"
+   ],
+   "n_examples": 376,
+   "asllex_entry": "smile",
+   "id": 198
+  },
+  {
+   "label": "snack",
+   "members": [
+    "snack"
+   ],
+   "n_examples": 381,
+   "asllex_entry": null,
+   "id": 199
+  },
+  {
+   "label": "snow",
+   "members": [
+    "snow"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "snow",
+   "id": 200
+  },
+  {
+   "label": "stairs",
+   "members": [
+    "stairs"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "stairs",
+   "id": 201
+  },
+  {
+   "label": "stay",
+   "members": [
+    "stay"
+   ],
+   "n_examples": 376,
+   "asllex_entry": "stay",
+   "id": 202
+  },
+  {
+   "label": "sticky",
+   "members": [
+    "sticky"
+   ],
+   "n_examples": 349,
+   "asllex_entry": "sticky",
+   "id": 203
+  },
+  {
+   "label": "store",
+   "members": [
+    "store"
+   ],
+   "n_examples": 374,
+   "asllex_entry": null,
+   "id": 204
+  },
+  {
+   "label": "story",
+   "members": [
+    "story"
+   ],
+   "n_examples": 369,
+   "asllex_entry": "story_1",
+   "id": 205
+  },
+  {
+   "label": "stuck",
+   "members": [
+    "stuck"
+   ],
+   "n_examples": 346,
+   "asllex_entry": "stuck",
+   "id": 206
+  },
+  {
+   "label": "sun",
+   "members": [
+    "sun"
+   ],
+   "n_examples": 389,
+   "asllex_entry": "sun",
+   "id": 207
+  },
+  {
+   "label": "table",
+   "members": [
+    "table"
+   ],
+   "n_examples": 337,
+   "asllex_entry": "table",
+   "id": 208
+  },
+  {
+   "label": "talk",
+   "members": [
+    "talk"
+   ],
+   "n_examples": 394,
+   "asllex_entry": "talk",
+   "id": 209
+  },
+  {
+   "label": "taste",
+   "members": [
+    "taste"
+   ],
+   "n_examples": 392,
+   "asllex_entry": "taste",
+   "id": 210
+  },
+  {
+   "label": "thankyou",
+   "members": [
+    "thankyou"
+   ],
+   "n_examples": 357,
+   "asllex_entry": "thank_you",
+   "id": 211
+  },
+  {
+   "label": "that",
+   "members": [
+    "that"
+   ],
+   "n_examples": 381,
+   "asllex_entry": "that",
+   "id": 212
+  },
+  {
+   "label": "there",
+   "members": [
+    "there"
+   ],
+   "n_examples": 363,
+   "asllex_entry": "there",
+   "id": 213
+  },
+  {
+   "label": "think",
+   "members": [
+    "think"
+   ],
+   "n_examples": 399,
+   "asllex_entry": "think",
+   "id": 214
+  },
+  {
+   "label": "thirsty",
+   "members": [
+    "thirsty"
+   ],
+   "n_examples": 360,
+   "asllex_entry": "thirsty",
+   "id": 215
+  },
+  {
+   "label": "tiger",
+   "members": [
+    "tiger"
+   ],
+   "n_examples": 394,
+   "asllex_entry": "tiger",
+   "id": 216
+  },
+  {
+   "label": "time",
+   "members": [
+    "time"
+   ],
+   "n_examples": 363,
+   "asllex_entry": "time",
+   "id": 217
+  },
+  {
+   "label": "tomorrow",
+   "members": [
+    "tomorrow"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "tomorrow",
+   "id": 218
+  },
+  {
+   "label": "tongue",
+   "members": [
+    "tongue"
+   ],
+   "n_examples": 374,
+   "asllex_entry": "tongue",
+   "id": 219
+  },
+  {
+   "label": "tooth",
+   "members": [
+    "tooth"
+   ],
+   "n_examples": 393,
+   "asllex_entry": "teeth",
+   "id": 220
+  },
+  {
+   "label": "toothbrush",
+   "members": [
+    "toothbrush"
+   ],
+   "n_examples": 402,
+   "asllex_entry": "toothbrush",
+   "id": 221
+  },
+  {
+   "label": "touch",
+   "members": [
+    "touch"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "touch",
+   "id": 222
+  },
+  {
+   "label": "toy",
+   "members": [
+    "toy"
+   ],
+   "n_examples": 378,
+   "asllex_entry": "toy_1",
+   "id": 223
+  },
+  {
+   "label": "tree",
+   "members": [
+    "tree"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "tree",
+   "id": 224
+  },
+  {
+   "label": "uncle",
+   "members": [
+    "uncle"
+   ],
+   "n_examples": 405,
+   "asllex_entry": "uncle",
+   "id": 225
+  },
+  {
+   "label": "underwear",
+   "members": [
+    "underwear"
+   ],
+   "n_examples": 373,
+   "asllex_entry": "underwear",
+   "id": 226
+  },
+  {
+   "label": "up",
+   "members": [
+    "up"
+   ],
+   "n_examples": 394,
+   "asllex_entry": "up",
+   "id": 227
+  },
+  {
+   "label": "vacuum",
+   "members": [
+    "vacuum"
+   ],
+   "n_examples": 307,
+   "asllex_entry": "vacuum",
+   "id": 228
+  },
+  {
+   "label": "wait",
+   "members": [
+    "wait"
+   ],
+   "n_examples": 346,
+   "asllex_entry": "wait",
+   "id": 229
+  },
+  {
+   "label": "water",
+   "members": [
+    "water"
+   ],
+   "n_examples": 384,
+   "asllex_entry": "water",
+   "id": 230
+  },
+  {
+   "label": "wet",
+   "members": [
+    "wet"
+   ],
+   "n_examples": 382,
+   "asllex_entry": "wet",
+   "id": 231
+  },
+  {
+   "label": "weus",
+   "members": [
+    "weus"
+   ],
+   "n_examples": 371,
+   "asllex_entry": null,
+   "id": 232
+  },
+  {
+   "label": "where",
+   "members": [
+    "where"
+   ],
+   "n_examples": 372,
+   "asllex_entry": "where",
+   "id": 233
+  },
+  {
+   "label": "white",
+   "members": [
+    "white"
+   ],
+   "n_examples": 370,
+   "asllex_entry": "white",
+   "id": 234
+  },
+  {
+   "label": "who",
+   "members": [
+    "who"
+   ],
+   "n_examples": 403,
+   "asllex_entry": "who",
+   "id": 235
+  },
+  {
+   "label": "why",
+   "members": [
+    "why"
+   ],
+   "n_examples": 364,
+   "asllex_entry": "why",
+   "id": 236
+  },
+  {
+   "label": "will",
+   "members": [
+    "will"
+   ],
+   "n_examples": 369,
+   "asllex_entry": "will",
+   "id": 237
+  },
+  {
+   "label": "wolf",
+   "members": [
+    "wolf"
+   ],
+   "n_examples": 388,
+   "asllex_entry": "wolf",
+   "id": 238
+  },
+  {
+   "label": "yellow",
+   "members": [
+    "yellow"
+   ],
+   "n_examples": 384,
+   "asllex_entry": "yellow",
+   "id": 239
+  },
+  {
+   "label": "yes",
+   "members": [
+    "yes"
+   ],
+   "n_examples": 386,
+   "asllex_entry": "yes",
+   "id": 240
+  },
+  {
+   "label": "yesterday",
+   "members": [
+    "yesterday"
+   ],
+   "n_examples": 398,
+   "asllex_entry": "yesterday",
+   "id": 241
+  },
+  {
+   "label": "yourself",
+   "members": [
+    "yourself"
+   ],
+   "n_examples": 385,
+   "asllex_entry": "yourself",
+   "id": 242
+  },
+  {
+   "label": "yucky",
+   "members": [
+    "yucky"
+   ],
+   "n_examples": 379,
+   "asllex_entry": "yucky",
+   "id": 243
+  },
+  {
+   "label": "zebra",
+   "members": [
+    "zebra"
+   ],
+   "n_examples": 375,
+   "asllex_entry": "zebra",
+   "id": 244
+  },
+  {
+   "label": "zipper",
+   "members": [
+    "zipper"
+   ],
+   "n_examples": 299,
+   "asllex_entry": "zipper",
+   "id": 245
+  }
+ ],
+ "sign_to_class": {
+  "TV": 0,
+  "after": 1,
+  "airplane": 2,
+  "all": 3,
+  "alligator": 4,
+  "animal": 5,
+  "another": 6,
+  "any": 7,
+  "apple": 8,
+  "arm": 9,
+  "aunt": 10,
+  "awake": 11,
+  "wake": 11,
+  "backyard": 12,
+  "bad": 13,
+  "balloon": 14,
+  "bath": 15,
+  "because": 16,
+  "bed": 17,
+  "bedroom": 18,
+  "bee": 19,
+  "before": 20,
+  "beside": 21,
+  "better": 22,
+  "bird": 23,
+  "black": 24,
+  "blow": 25,
+  "blue": 26,
+  "boat": 27,
+  "book": 28,
+  "boy": 29,
+  "brother": 30,
+  "brown": 31,
+  "bug": 32,
+  "bye": 33,
+  "callonphone": 34,
+  "can": 35,
+  "car": 36,
+  "carrot": 37,
+  "cat": 38,
+  "kitty": 38,
+  "cereal": 39,
+  "chair": 40,
+  "cheek": 41,
+  "child": 42,
+  "chin": 43,
+  "chocolate": 44,
+  "clean": 45,
+  "close": 46,
+  "closet": 47,
+  "cloud": 48,
+  "clown": 49,
+  "cow": 50,
+  "cowboy": 51,
+  "cry": 52,
+  "cut": 53,
+  "cute": 54,
+  "dad": 55,
+  "dance": 56,
+  "dirty": 57,
+  "dog": 58,
+  "puppy": 58,
+  "doll": 59,
+  "donkey": 60,
+  "down": 61,
+  "drawer": 62,
+  "drink": 63,
+  "drop": 64,
+  "dry": 65,
+  "dryer": 66,
+  "duck": 67,
+  "ear": 68,
+  "elephant": 69,
+  "empty": 70,
+  "every": 71,
+  "eye": 72,
+  "face": 73,
+  "fall": 74,
+  "farm": 75,
+  "fast": 76,
+  "feet": 77,
+  "find": 78,
+  "fine": 79,
+  "finger": 80,
+  "finish": 81,
+  "fireman": 82,
+  "first": 83,
+  "fish": 84,
+  "flag": 85,
+  "flower": 86,
+  "food": 87,
+  "for": 88,
+  "frenchfries": 89,
+  "frog": 90,
+  "garbage": 91,
+  "gift": 92,
+  "giraffe": 93,
+  "girl": 94,
+  "give": 95,
+  "glasswindow": 96,
+  "go": 97,
+  "goose": 98,
+  "grandma": 99,
+  "grandpa": 100,
+  "grass": 101,
+  "green": 102,
+  "gum": 103,
+  "hair": 104,
+  "happy": 105,
+  "hat": 106,
+  "hate": 107,
+  "have": 108,
+  "haveto": 109,
+  "head": 110,
+  "hear": 111,
+  "helicopter": 112,
+  "hello": 113,
+  "hen": 114,
+  "hesheit": 115,
+  "hide": 116,
+  "high": 117,
+  "home": 118,
+  "horse": 119,
+  "hot": 120,
+  "hungry": 121,
+  "icecream": 122,
+  "if": 123,
+  "into": 124,
+  "jacket": 125,
+  "jeans": 126,
+  "jump": 127,
+  "kiss": 128,
+  "lamp": 129,
+  "later": 130,
+  "like": 131,
+  "lion": 132,
+  "lips": 133,
+  "listen": 134,
+  "look": 135,
+  "loud": 136,
+  "mad": 137,
+  "make": 138,
+  "man": 139,
+  "many": 140,
+  "milk": 141,
+  "minemy": 142,
+  "mitten": 143,
+  "mom": 144,
+  "moon": 145,
+  "morning": 146,
+  "mouse": 147,
+  "mouth": 148,
+  "napkin": 149,
+  "night": 150,
+  "no": 151,
+  "noisy": 152,
+  "nose": 153,
+  "not": 154,
+  "now": 155,
+  "nuts": 156,
+  "old": 157,
+  "on": 158,
+  "open": 159,
+  "orange": 160,
+  "outside": 161,
+  "owie": 162,
+  "owl": 163,
+  "pajamas": 164,
+  "pen": 165,
+  "pencil": 166,
+  "penny": 167,
+  "person": 168,
+  "pig": 169,
+  "pizza": 170,
+  "please": 171,
+  "police": 172,
+  "pool": 173,
+  "potty": 174,
+  "pretend": 175,
+  "pretty": 176,
+  "puzzle": 177,
+  "quiet": 178,
+  "radio": 179,
+  "rain": 180,
+  "read": 181,
+  "red": 182,
+  "refrigerator": 183,
+  "ride": 184,
+  "room": 185,
+  "sad": 186,
+  "same": 187,
+  "say": 188,
+  "scissors": 189,
+  "see": 190,
+  "shhh": 191,
+  "shirt": 192,
+  "shoe": 193,
+  "shower": 194,
+  "sick": 195,
+  "nap": 196,
+  "sleep": 196,
+  "sleepy": 197,
+  "smile": 198,
+  "snack": 199,
+  "snow": 200,
+  "stairs": 201,
+  "stay": 202,
+  "sticky": 203,
+  "store": 204,
+  "story": 205,
+  "stuck": 206,
+  "sun": 207,
+  "table": 208,
+  "talk": 209,
+  "taste": 210,
+  "thankyou": 211,
+  "that": 212,
+  "there": 213,
+  "think": 214,
+  "thirsty": 215,
+  "tiger": 216,
+  "time": 217,
+  "tomorrow": 218,
+  "tongue": 219,
+  "tooth": 220,
+  "toothbrush": 221,
+  "touch": 222,
+  "toy": 223,
+  "tree": 224,
+  "uncle": 225,
+  "underwear": 226,
+  "up": 227,
+  "vacuum": 228,
+  "wait": 229,
+  "water": 230,
+  "wet": 231,
+  "weus": 232,
+  "where": 233,
+  "white": 234,
+  "who": 235,
+  "why": 236,
+  "will": 237,
+  "wolf": 238,
+  "yellow": 239,
+  "yes": 240,
+  "yesterday": 241,
+  "yourself": 242,
+  "yucky": 243,
+  "zebra": 244,
+  "zipper": 245
+ }
+}

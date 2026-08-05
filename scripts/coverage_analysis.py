@@ -112,6 +112,37 @@ def clusters_within(adj: dict[str, set[str]], members: list[str]) -> list[list[s
     return sorted(out, key=len, reverse=True)
 
 
+def derive_training_labels(signs: list[str], matched: dict[str, pd.Series],
+                           counts: pd.DataFrame) -> dict:
+    """Canonical visual classes: Kaggle signs resolving to the same ASL-LEX entry merge.
+
+    Canonical gloss = the member that matched the entry directly (not via alias);
+    unmatched signs pass through as their own class.
+    """
+    groups: dict[str, list[str]] = {}
+    for s in signs:
+        key = str(matched[s]["EntryID"]).strip() if s in matched else f"unmatched:{s}"
+        groups.setdefault(key, []).append(s)
+
+    classes = []
+    for entry, members in groups.items():
+        direct = [m for m in members if m not in ALIAS]
+        assert len(direct) <= 1, f"two direct matches share entry {entry}: {direct}"
+        label = direct[0] if direct else sorted(members)[0]
+        classes.append({
+            "label": label,
+            "members": sorted(members),
+            "n_examples": int(counts.loc[members, "n_examples"].sum()),
+            "asllex_entry": None if entry.startswith("unmatched:") else entry,
+        })
+    classes.sort(key=lambda c: c["label"])
+    for i, c in enumerate(classes):
+        c["id"] = i
+    sign_to_class = {m: c["id"] for c in classes for m in c["members"]}
+    assert len(sign_to_class) == len(signs)
+    return {"n_classes": len(classes), "classes": classes, "sign_to_class": sign_to_class}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--train-csv", type=Path, default=Path("data/meta/train.csv"))
@@ -145,6 +176,12 @@ def main() -> None:
     missing = sorted(set(CURRICULUM_V1) - set(matched))
     assert not missing, f"curriculum signs without ASL-LEX match: {missing}"
     assert len(CURRICULUM_V1) == len(set(CURRICULUM_V1)) == 50
+
+    labels = derive_training_labels(signs, matched, counts)
+    label_of = {c["id"]: c["label"] for c in labels["classes"]}
+    non_canonical = [s for s in CURRICULUM_V1 if label_of[labels["sign_to_class"][s]] != s]
+    assert not non_canonical, f"curriculum uses non-canonical glosses: {non_canonical}"
+    (args.out_dir / "training_labels.json").write_text(json.dumps(labels, indent=1) + "\n")
     clusters = clusters_within(strong, CURRICULUM_V1)
     assert len(clusters) >= 5, f"only {len(clusters)} minimal-pair clusters in curriculum"
 
@@ -168,8 +205,11 @@ def main() -> None:
     write_report(args.out_dir / "coverage_report.md", signs, counts, matched, unmatched,
                  in_wlasl, strong, any_adj, clusters, curriculum_df,
                  n_participants=train.participant_id.nunique())
+    collisions = [c for c in labels["classes"] if len(c["members"]) > 1]
     print(f"matched {len(matched)}/250, {len(pairs)} confusable pairs, "
           f"{len(clusters)} curriculum clusters -> {args.out_dir}/coverage_report.md")
+    print(f"{labels['n_classes']} canonical training classes; collision groups: "
+          + "; ".join("/".join(c["members"]) for c in collisions))
 
 
 def write_report(path, signs, counts, matched, unmatched, in_wlasl, strong, any_adj,
