@@ -20,7 +20,7 @@ def test_matching_and_curriculum_invariants():
     signs = sorted(json.load((META / "sign_to_prediction_index_map.json").open()))
     by_base = ca.load_asllex(META / "asllex_signdata.csv")
     matched = ca.match_signs(signs, by_base)
-    assert len(matched) == 230  # 20 documented unmatched signs
+    assert len(matched) == 233  # 17 documented unmatched signs
 
     assert len(ca.CURRICULUM_V1) == len(set(ca.CURRICULUM_V1)) == 50
     assert set(ca.CURRICULUM_V1) <= set(matched)
