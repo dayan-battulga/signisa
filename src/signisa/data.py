@@ -17,6 +17,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .config import AugmentConfig
+from .preprocess.landmarks import MIRROR_PERM
 from .preprocess.pipeline import with_derived_channels
 
 
@@ -53,6 +54,18 @@ def augmented(coords: np.ndarray, confidence: np.ndarray, cfg: AugmentConfig,
         confidence[start:start + span] = 0.0
         masked += span
     return coords, confidence
+
+
+def mirrored_stored(stored: np.ndarray) -> np.ndarray:
+    """Flip a stored (T, 65, 4) tensor's orientation in canonical space.
+
+    Exactly equivalent to having mirrored the raw sequence before preprocess
+    (every pipeline step is mirror-equivariant; verified to zero error on real
+    data — z keeps its sign because the canonical frame re-derives it as x*up).
+    """
+    out = stored[:, MIRROR_PERM].copy()
+    out[..., 0] = -out[..., 0]
+    return out
 
 
 @lru_cache(maxsize=1)
