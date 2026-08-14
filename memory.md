@@ -5,6 +5,32 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 5 (2026-08-14, decision layer — task3b Part 2, CPU-only):
+- `src/signisa/decision/policy.py`: DecisionConfig (user_level 0..1,
+  margin_delta 0.05, tau_bg 0.2 placeholder until Phase 4 OpenMax) +
+  verify_attempt -> Verdict (JSON-serializable dataclass). Chain: garbage gate
+  (max cosine over all curriculum centroids < tau_bg -> "not_signing") ->
+  per-sign threshold eer + level*(far5 - eer), clamped stricter-ward when
+  far5 < eer inverts at small n (threshold_clamped flag) -> score < threshold
+  -> "inaccurate" -> margin-over-confusables (score - rival cosine >=
+  margin_delta for every in-db confusable) -> "confusable" naming the
+  offender; else accept "ok" with worst-margin details.
+- Confusables outside the 50-sign curriculum have no centroid in the db and
+  are skipped by the margin check — margin coverage grows with the curriculum.
+- tests/test_decision.py: 8 tests on a hand-built orthogonal fake db (clean
+  accept, confusable naming the right sign, garbage, below-threshold,
+  user-level borderline flip, inverted-threshold clamp, untrained raise,
+  JSON round-trip). No model needed.
+- scripts/verify_attempt.py: parquet -> per-sequence dominance (the unseen-
+  participant fallback) -> preprocess -> embedder -> verdict JSON. --untrained
+  smoke-tested on data/samples: random embedding correctly rejected as
+  "not_signing" by the garbage gate; user_level 1.0 + clamp path exercised.
+- Smoke gotcha: a curriculum_db_trained.json from a mini run fills centroid
+  and thresholds independently (centroid needs train examples, thresholds
+  need val trials targeting the sign) — verify_attempt requires BOTH.
+  Also: db centroid dims must match the checkpoint's embed_dim (a small-config
+  db (64-d) can't be used with the default 512-d model).
+
 Session 4 (2026-08-13, Phase 1 results + diagnostic):
 - **Phase 1 Kaggle results (full asl-signs, signer-independent 4-of-21 val):**
   CE 72.9% TAR@FAR5 / 46.3% top-1 / 15.3% mean EER; ArcFace 72.6% / 48.4% /
