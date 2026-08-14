@@ -112,20 +112,24 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
     confusable_ids = {id_of[s]: [id_of[c] for c in e["confusables"]]
                       for s, e in db["signs"].items()}
     rng = np.random.default_rng(cfg.seed)
-    trials = []  # (attempt_label, target_label, score, is_genuine)
+    trials = []
     skipped = 0
-    for emb, label in zip(val_emb, val_labels):
+    val_seqs = val_ds.index.sequence_id.to_numpy()
+    val_pids_col = val_ds.index.participant_id.to_numpy()
+    for emb, label, seq, pid in zip(val_emb, val_labels, val_seqs, val_pids_col):
         label = int(label)
         if label not in confusable_ids or label not in centroids:
             skipped += label in confusable_ids  # curriculum sign missing a centroid
             continue
-        trials.append((label, label, float(emb @ centroids[label]), True))
+        trials.append((int(seq), int(pid), label, label, float(emb @ centroids[label]), True))
         hard = [c for c in confusable_ids[label] if c in centroids]
         pool = [i for i in ids if i != label and i not in hard]
         rand = rng.choice(pool, size=min(cfg.n_random_impostors, len(pool)), replace=False)
         for target in hard + [int(r) for r in rand]:
-            trials.append((label, target, float(emb @ centroids[target]), False))
-    tdf = pd.DataFrame(trials, columns=["attempt", "target", "score", "genuine"])
+            trials.append((int(seq), int(pid), label, target,
+                           float(emb @ centroids[target]), False))
+    tdf = pd.DataFrame(trials, columns=["sequence_id", "participant", "attempt",
+                                        "target", "score", "genuine"])
 
     genuine_all = tdf[tdf.genuine].score.to_numpy()
     impostor_all = tdf[~tdf.genuine].score.to_numpy()
@@ -146,6 +150,25 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
                           "eer_threshold": thr,
                           "far5_threshold": far_threshold(i, cfg.far_target)}
 
+    # per-participant breakdown at the GLOBAL threshold — a bad or wrongly-mirrored
+    # val signer shows up as an outlier row here
+    per_participant = {}
+    for pid in val_participants:
+        sub = tdf[tdf.participant == pid]
+        g = sub[sub.genuine].score.to_numpy()
+        sign_eers = [eer_of(sg, si)[0] for t in sub.target.unique()
+                     if len(sg := sub[(sub.target == t) & sub.genuine].score.to_numpy())
+                     and len(si := sub[(sub.target == t) & ~sub.genuine].score.to_numpy())]
+        vrows = index[index.participant_id == pid]
+        per_participant[int(pid)] = {
+            "n_genuine": len(g),
+            "tar_at_far": float((g >= far5_global).mean()) if len(g) else None,
+            "mean_eer": float(np.mean(sign_eers)) if sign_eers else None,
+            "genuine_median": float(np.median(g)) if len(g) else None,
+            "genuine_iqr": float(np.subtract(*np.percentile(g, [75, 25]))) if len(g) else None,
+            "mirrored_rate": float(vrows.mirrored.mean()),
+        }
+
     clusters = []
     for members in db["clusters"]:
         member_ids = {id_of[m] for m in members}
@@ -163,6 +186,7 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
         "global_far_threshold": far5_global, "n_genuine": len(genuine_all),
         "n_impostor": len(impostor_all), "skipped_missing_centroid": skipped,
         "per_sign": per_sign, "clusters": clusters,
+        "per_participant": per_participant, "trials": tdf,
     }
     _write_report(metrics, out_dir / "metrics_report.md", cfg)
     _write_trained_db(db, centroids, per_sign, id_of, out_dir / "curriculum_db_trained.json")
@@ -180,7 +204,16 @@ def _write_report(m: dict, path: Path, cfg: Config) -> None:
         f"- Closed-set top-1 over all {cfg.n_classes} classes: {m['top1_closed_set']:.1%}",
         f"- Mean per-sign EER: {np.mean(eers):.1%} (n={len(eers)})" if eers else "- No per-sign EERs",
         f"- Skipped curriculum attempts missing a centroid: {m['skipped_missing_centroid']}\n",
-        "## Cluster collapse check (flag: overlap > "
+        "## Per-participant (val, at the global threshold)\n",
+        "| participant | genuine | TAR@FAR | mean EER | genuine median | IQR | mirrored |",
+        "|---|---|---|---|---|---|---|",
+        *[f"| {pid} | {v['n_genuine']} "
+          f"| {v['tar_at_far']:.1%} | {v['mean_eer']:.1%} "
+          f"| {v['genuine_median']:.3f} | {v['genuine_iqr']:.3f} | {v['mirrored_rate']:.0%} |"
+          if v["tar_at_far"] is not None and v["mean_eer"] is not None
+          else f"| {pid} | {v['n_genuine']} | - | - | - | - | {v['mirrored_rate']:.0%} |"
+          for pid, v in m["per_participant"].items()],
+        "\n## Cluster collapse check (flag: overlap > "
         f"{cfg.cluster_overlap_flag:.0%})\n",
         "| cluster | genuine | confusable | overlap | collapsed |",
         "|---|---|---|---|---|",

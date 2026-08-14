@@ -113,8 +113,19 @@ def test_end_to_end_mini_run(tensors_dir, tmp_path):
                              val_participants=val_pids)
     report = (tmp_path / "metrics_report.md").read_text()
     assert "TAR@FAR" in report and "Cluster collapse" in report
+    assert "Per-participant" in report
     assert 0.0 <= metrics["tar_at_far"] <= 1.0
     assert 0.0 <= metrics["top1_closed_set"] <= 1.0
+
+    assert set(metrics["per_participant"]) == set(val_pids)
+    for v in metrics["per_participant"].values():
+        assert v["mirrored_rate"] in (0.0, 1.0)  # vote is per participant, so uniform
+    trials = metrics["trials"]
+    assert list(trials.columns) == ["sequence_id", "participant", "attempt",
+                                    "target", "score", "genuine"]
+    assert set(trials.participant) <= set(val_pids)
+    # every genuine trial has exactly one row per val curriculum attempt
+    assert trials[trials.genuine].sequence_id.is_unique
 
     trained = json.load((tmp_path / "curriculum_db_trained.json").open())
     assert trained["signs"].keys() == json.load(
