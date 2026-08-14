@@ -193,6 +193,10 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
     return metrics
 
 
+def _fmt(value, spec: str) -> str:
+    return format(value, spec) if value is not None else "-"
+
+
 def _write_report(m: dict, path: Path, cfg: Config) -> None:
     eers = [v["eer"] for v in m["per_sign"].values() if v["eer"] is not None]
     lines = [
@@ -207,11 +211,9 @@ def _write_report(m: dict, path: Path, cfg: Config) -> None:
         "## Per-participant (val, at the global threshold)\n",
         "| participant | genuine | TAR@FAR | mean EER | genuine median | IQR | mirrored |",
         "|---|---|---|---|---|---|---|",
-        *[f"| {pid} | {v['n_genuine']} "
-          f"| {v['tar_at_far']:.1%} | {v['mean_eer']:.1%} "
-          f"| {v['genuine_median']:.3f} | {v['genuine_iqr']:.3f} | {v['mirrored_rate']:.0%} |"
-          if v["tar_at_far"] is not None and v["mean_eer"] is not None
-          else f"| {pid} | {v['n_genuine']} | - | - | - | - | {v['mirrored_rate']:.0%} |"
+        *[f"| {pid} | {v['n_genuine']} | {_fmt(v['tar_at_far'], '.1%')} "
+          f"| {_fmt(v['mean_eer'], '.1%')} | {_fmt(v['genuine_median'], '.3f')} "
+          f"| {_fmt(v['genuine_iqr'], '.3f')} | {v['mirrored_rate']:.0%} |"
           for pid, v in m["per_participant"].items()],
         "\n## Cluster collapse check (flag: overlap > "
         f"{cfg.cluster_overlap_flag:.0%})\n",

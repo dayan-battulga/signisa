@@ -173,6 +173,11 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
 - Known accepted nitpicks: scheduler.step() advances on AMP-skipped steps
   (rare after the fp32 ArcFace fix); eer_of is O(thresholds x trials) memory —
   per-sign scale only, documented in its docstring.
+- per-participant mean_eer degenerates to a 0/1 win-rate at smoke scale
+  (1 genuine x 1 impostor per sign-group); meaningful only at full scale
+  (~18 attempts/sign/participant). The diagnose notebook's "beaten_by" column
+  is the top rival centroid — it only literally "beat" the genuine when
+  margin < 0.
 - Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
 
 ## Missing / absent from expected inputs
