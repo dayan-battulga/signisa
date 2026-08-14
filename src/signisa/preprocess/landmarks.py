@@ -46,6 +46,7 @@ _FACE_MIRROR_PAIRS = [
     (82, 312), (81, 311), (80, 310), (191, 415),
 ]
 _FACE_MIRROR = {a: b for a, b in _FACE_MIRROR_PAIRS} | {b: a for a, b in _FACE_MIRROR_PAIRS}
+_FACE_MIDLINE = {0, 13, 14, 17}  # the only face points allowed to self-pair
 
 # Named node ids in selection space — identical in both versions.
 NOSE = 42
@@ -85,6 +86,8 @@ class LandmarkSet:
         for left, right in _POSE_PAIRS:
             perm[left], perm[right] = right, left
         for pos, fp in enumerate(self.face_points):
+            assert fp in _FACE_MIRROR or fp in _FACE_MIDLINE, (
+                f"face point {fp} has no mirror pair and is not declared midline")
             partner = _FACE_MIRROR.get(fp, fp)  # midline points are their own partner
             perm[_FACE_BASE + pos] = _FACE_BASE + self.face_points.index(partner)
         for name, value in [("n_nodes", n), ("holistic_indices", indices),

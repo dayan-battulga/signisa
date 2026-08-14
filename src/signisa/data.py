@@ -63,7 +63,10 @@ def mirrored_stored(stored: np.ndarray, version: str = "v1") -> np.ndarray:
     (every pipeline step is mirror-equivariant; verified to zero error on real
     data — z keeps its sign because the canonical frame re-derives it as x*up).
     """
-    out = stored[:, LANDMARK_SETS[version].mirror_perm].copy()
+    lset = LANDMARK_SETS[version]
+    assert stored.shape[1] == lset.n_nodes, (
+        f"{stored.shape} is not a {version} tensor")  # v1 perm would silently truncate v2
+    out = stored[:, lset.mirror_perm].copy()
     out[..., 0] = -out[..., 0]
     return out
 

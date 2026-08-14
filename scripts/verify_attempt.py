@@ -46,8 +46,10 @@ def main() -> None:
         embedding = model.embedder(torch.from_numpy(result.tensor)[None])[0].numpy()
 
     db = json.load(args.db.open())
-    db_version = db.get("landmark_version")
-    assert db_version in (None, model.cfg.landmark_version), (
+    # a db without the field is legacy v1-era; embeddings are 512-d either way,
+    # so nothing downstream would shape-fail — this assert is the only guard
+    db_version = db.get("landmark_version") or "v1"
+    assert db_version == model.cfg.landmark_version, (
         f"db centroids are {db_version} but the model is {model.cfg.landmark_version}")
     verdict = verify_attempt(embedding, args.target, db,
                              DecisionConfig(user_level=args.user_level))

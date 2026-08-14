@@ -46,7 +46,9 @@ def select_nodes(holistic: np.ndarray, version: str = "v1") -> np.ndarray:
 
 def mirrored(seq: np.ndarray, version: str = "v1") -> np.ndarray:
     """Reflect a left-dominant sequence into right-dominant canonical space."""
-    out = seq[:, LANDMARK_SETS[version].mirror_perm].copy()
+    lset = LANDMARK_SETS[version]
+    assert seq.shape[1] == lset.n_nodes, f"{seq.shape} is not a {version} sequence"
+    out = seq[:, lset.mirror_perm].copy()
     out[..., 0] = -out[..., 0]
     return out
 

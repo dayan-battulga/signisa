@@ -1,5 +1,8 @@
 """Validate the preprocessing pipeline against real Kaggle asl-signs parquets (backlog 0.3).
 
+v1-only: the node-group slices and face-geometry ranges hardcode the 65-node
+layout. v2 lip geometry is covered by tests/test_training.py instead.
+
 Usage: python scripts/validate_pipeline.py [samples_dir] [train_csv]
 Defaults: data/samples data/meta/train.csv
 """

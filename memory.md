@@ -33,6 +33,18 @@ Session 8 (2026-08-14, landmark v2 + live loop):
   path headless; cv2/mediapipe imported lazily ([live] extra).
 - **Phase 1b target restated: >=80% TAR@FAR5** on unseen signers with the v2
   input (waypoint toward the backlog's >90% Phase 1 criterion).
+- Adversarial-review outcome (session 8): the 40-point lip set verified as
+  the exact FACEMESH_LIPS node set with genuine ring-order traversal; all 23
+  mirror pairs geometrically confirmed on 457 real frames; v1 arrays
+  bit-identical to pre-refactor; v2 mirrored_stored bit-exact like v1.
+  Three real bugs fixed: diagnose round-2 cells were hardcoded v1 (now pass
+  val_ds.landmark_version); mirrored_stored silently TRUNCATED v2 arrays
+  under the v1 default (now shape-asserted, ditto pipeline.mirrored); a
+  version-less legacy db passed the CLI assert with ANY model version — the
+  one fully silent cross path since embeddings are 512-d in both versions
+  (now: missing field == v1, must match the model). Also: unpaired face
+  points must be declared midline (future-proofing assert);
+  validate_pipeline.py documented as v1-only.
 
 Session 7 (2026-08-14, 200-epoch run prep):
 - **Round-2 diagnosis conclusions (Kaggle): orientation hypothesis CLEARED** —
