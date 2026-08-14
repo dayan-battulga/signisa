@@ -16,6 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest"]
 train = ["torch"]
+live = ["mediapipe", "opencv-python"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

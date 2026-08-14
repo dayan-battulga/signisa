@@ -5,6 +5,35 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 8 (2026-08-14, landmark v2 + live loop):
+- **200-epoch ArcFace converged: 50.3% top-1 at epoch 166, flat tail, TAR
+  73.4% — under-training eliminated as a cause.** Remaining levers: input
+  representation (this session) and signer diversity (Phase 2 data).
+- **Landmark set v2 (99 nodes)**: hands/body/brows/eyes unchanged, mouth
+  upgraded from 6 to the standard 40-point MediaPipe lip set (outer+inner
+  rings). Rationale (task3a): Kaggle winners carried 18-40 lip points because
+  PopSign players mouth the words — the strongest evidence-backed lever left.
+  landmarks.py now builds LandmarkSet objects (v1/v2) from one face-mesh
+  symmetry table; v1 arrays are bit-identical to the old constants. Mirror
+  perm derived generically; lip pairs verified on real frames (straddle test)
+  + involution.
+- **landmark_version recorded everywhere**: shards (npz field), index.csv
+  column, checkpoints (save_checkpoint/load_checkpoint in signisa.models —
+  legacy raw state dicts still load as v1), trained curriculum_db, metrics
+  report (+ torch.__version__). Mismatch asserts at every seam: ShardDataset
+  (shape vs version), train_model, run_evaluation, both verdict CLIs.
+  Config.landmark_version drives n_nodes via __post_init__.
+- kaggle_prep now has LANDMARK_VERSION="v2"; kaggle_train auto-detects the
+  version from index.csv — no manual sync.
+- **scripts/live_verify.py**: webcam -> 3-2-1 countdown -> ~2.5s capture ->
+  MediaPipe Holistic -> Kaggle-layout (543,3) rows -> per-attempt dominance ->
+  preprocess at the checkpoint's landmark version (measured fps, not nominal
+  30) -> verdict. --save-dir persists landmarks + verdict JSON per attempt
+  (first real learner data; Phase 2 seed). --smoke <parquet> runs the same
+  path headless; cv2/mediapipe imported lazily ([live] extra).
+- **Phase 1b target restated: >=80% TAR@FAR5** on unseen signers with the v2
+  input (waypoint toward the backlog's >90% Phase 1 criterion).
+
 Session 7 (2026-08-14, 200-epoch run prep):
 - **Round-2 diagnosis conclusions (Kaggle): orientation hypothesis CLEARED** —
   no val participant's genuine median improves under flipping, so the
