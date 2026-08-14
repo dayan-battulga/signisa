@@ -5,6 +5,23 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 7 (2026-08-14, 200-epoch run prep):
+- **Round-2 diagnosis conclusions (Kaggle): orientation hypothesis CLEARED** —
+  no val participant's genuine median improves under flipping, so the
+  dominance vote is fine. Label noise is small: 1.8% suspect trials (well
+  under PopSign's 19%), clean-TAR barely moves. sad's low scores are diffuse
+  (no bimodality, low coherence) — scattered bad clips, not a second variant.
+  **Primary cause of the ~73% wall = model quality / signer diversity**, so
+  the next lever is longer training (200-epoch ArcFace) and later more signers.
+- kaggle_train.ipynb prepped: CONFIG defaults now arcface/200 epochs, PATIENCE
+  exposed (default 30 — 10 was too twitchy for a 200-epoch cosine), training
+  cell prints best-epoch + last-20 val-top1 tail, and a "## Training" section
+  is appended to metrics_report.md (best epoch, epochs run, early-stopped
+  flag, tail) so the report itself shows whether 200 was enough.
+- Confirmed (numerically, not just by reading): warmup_cosine spans
+  cfg.epochs — warm ends at epoch 5, factor 0.52 at epoch 100, 0.0 at the
+  final step of epoch 200. No hardcoded 60 anywhere in the schedule.
+
 Session 6 (2026-08-14, diagnostic round 2 — orientation test + noise bound):
 - **Round-1 diagnosis findings (Kaggle):** mirrored val signers ~82% TAR /
   7.7% EER vs unmirrored 68.7% / 56.7% -> dominance-vote error suspected, not
