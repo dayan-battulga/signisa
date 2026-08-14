@@ -133,6 +133,9 @@ def test_end_to_end_mini_run(tensors_dir, tmp_path):
     filled = [s for s, e in trained["signs"].items() if e["centroid"] is not None]
     assert filled, "no centroids were filled"
     assert all(len(trained["signs"][s]["centroid"]) == cfg.embed_dim for s in filled)
+    # out-of-curriculum rivals get centroids too, so the decision policy can margin-check them
+    assert "confusable_centroids" in trained
+    assert not set(trained["confusable_centroids"]) & set(trained["signs"])
 
 
 def test_parameter_budget():

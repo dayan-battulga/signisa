@@ -40,7 +40,11 @@ def verify_attempt(embedding: np.ndarray, target_gloss: str, db: dict,
         raise ValueError(f"{target_gloss} has no trained centroid/thresholds — "
                          "use a curriculum_db_trained.json from signisa.eval")
     embedding = np.asarray(embedding, dtype=np.float64)
-    embedding = embedding / np.linalg.norm(embedding)
+    norm = np.linalg.norm(embedding)
+    if not np.isfinite(norm) or norm < 1e-8:
+        # NaN scores would sail through every `<` reject gate straight to accept
+        raise ValueError("invalid embedding: zero or non-finite")
+    embedding = embedding / norm
 
     centroids = {gloss: np.asarray(entry["centroid"])
                  for gloss, entry in db["signs"].items() if entry["centroid"] is not None}
@@ -49,11 +53,15 @@ def verify_attempt(embedding: np.ndarray, target_gloss: str, db: dict,
     eer, far5 = target["eer_threshold"], target["low_far_threshold"]
     clamped = far5 < eer  # ordering can invert at small n; clamp to the stricter point
     far5 = max(far5, eer)
-    threshold = eer + config.user_level * (far5 - eer)
+    level = float(np.clip(config.user_level, 0.0, 1.0))
+    threshold = eer + level * (far5 - eer)
 
-    # rivals: confusables of the target that have trained centroids in this db
-    rival_scores = {gloss: float(embedding @ centroids[gloss])
-                    for gloss in target["confusables"] if gloss in centroids}
+    # rivals: confusables of the target — curriculum centroids plus the
+    # out-of-curriculum ones eval writes under "confusable_centroids"
+    rival_centroids = {**{g: np.asarray(c) for g, c in db.get("confusable_centroids", {}).items()},
+                       **centroids}
+    rival_scores = {gloss: float(embedding @ rival_centroids[gloss])
+                    for gloss in target["confusables"] if gloss in rival_centroids}
     best_confusable = max(rival_scores, key=rival_scores.get) if rival_scores else None
     margin = score - rival_scores[best_confusable] if best_confusable else None
 

@@ -30,6 +30,15 @@ Session 5 (2026-08-14, decision layer — task3b Part 2, CPU-only):
   need val trials targeting the sign) — verify_attempt requires BOTH.
   Also: db centroid dims must match the checkpoint's embed_dim (a small-config
   db (64-d) can't be used with the default 512-d model).
+- Adversarial-review fixes (session 5): zero/NaN embeddings raised (NaN sailed
+  through every `<` reject gate to accept); eval now writes
+  "confusable_centroids" for out-of-curriculum rivals — 194/280 confusable
+  references point outside the 50-sign curriculum and were silently skipped
+  by the margin check; user_level clamped to [0,1]; CLI --untrained/--checkpoint
+  mutually exclusive + comprehensible error on architecture mismatch.
+- **Trained dbs from the existing Kaggle run predate confusable_centroids** —
+  rerunning kaggle_diagnose.ipynb (it calls run_evaluation) regenerates
+  curriculum_db_trained.json with the section; no retraining needed.
 
 Session 4 (2026-08-13, Phase 1 results + diagnostic):
 - **Phase 1 Kaggle results (full asl-signs, signer-independent 4-of-21 val):**

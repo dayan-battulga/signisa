@@ -245,4 +245,10 @@ def _write_trained_db(db: dict, centroids: dict, per_sign: dict, id_of: dict,
         stats = per_sign.get(sign, {})
         entry["eer_threshold"] = stats.get("eer_threshold")
         entry["low_far_threshold"] = stats.get("far5_threshold")
+    # out-of-curriculum confusables need centroids too, or the decision policy's
+    # margin check silently skips ~70% of the listed confusable relations
+    needed = {c for e in out["signs"].values() for c in e["confusables"]} - set(out["signs"])
+    out["confusable_centroids"] = {
+        gloss: [round(float(v), 6) for v in centroids[id_of[gloss]]]
+        for gloss in sorted(needed) if id_of[gloss] in centroids}
     path.write_text(json.dumps(out) + "\n")

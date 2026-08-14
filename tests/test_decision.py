@@ -29,13 +29,20 @@ def fake_db() -> dict:
         "centroid": centroid, "confusables": confusables,
         "eer_threshold": eer, "low_far_threshold": far5,
     }
+    # "girl" has two in-db rivals (brother closer than aunt) plus an
+    # out-of-curriculum rival "farm" living in confusable_centroids
     return {"signs": {
         "mom": sign(E[0].tolist(), ["dad"]),
         "dad": sign(dad, ["mom"]),
         "book": sign(E[2].tolist(), []),
         "bad": sign(E[3].tolist(), [], eer=0.7, far5=0.5),
+        "girl": sign(E[4].tolist(), ["aunt", "brother", "farm"]),
+        "aunt": sign(unit(0.8 * E[4] + 0.6 * E[5]), []),
+        "brother": sign(unit(0.9 * E[4] + np.sqrt(1 - 0.81) * E[5]), []),
         "untrained": {"centroid": None, "confusables": [],
                       "eer_threshold": None, "low_far_threshold": None},
+    }, "confusable_centroids": {
+        "farm": unit(0.97 * E[4] + np.sqrt(1 - 0.97**2) * E[6]),
     }}
 
 
@@ -89,6 +96,28 @@ def test_inverted_thresholds_clamp_strict_ward():
 def test_untrained_sign_raises():
     with pytest.raises(ValueError, match="no trained centroid"):
         verify_attempt(E[0], "untrained", fake_db())
+
+
+def test_closest_of_several_rivals_wins_including_out_of_curriculum():
+    # attempt = girl centroid: rivals score aunt 0.8 < brother 0.9 < farm 0.97;
+    # farm comes from confusable_centroids and its margin 0.03 < 0.05 rejects
+    v = verify_attempt(E[4], "girl", fake_db())
+    assert not v.accepted and v.reason == "confusable"
+    assert v.best_confusable == "farm"
+    assert v.margin == pytest.approx(0.03)
+
+
+def test_zero_or_nonfinite_embedding_raises():
+    with pytest.raises(ValueError, match="invalid embedding"):
+        verify_attempt(np.zeros(DIM), "mom", fake_db())
+    with pytest.raises(ValueError, match="invalid embedding"):
+        verify_attempt(np.full(DIM, np.nan), "mom", fake_db())
+
+
+def test_user_level_is_clamped():
+    attempt = at_cosine(E[2], E[7], 0.7)
+    wild = verify_attempt(attempt, "book", fake_db(), DecisionConfig(user_level=5.0))
+    assert wild.threshold == pytest.approx(0.8)  # clamped to level 1, not extrapolated
 
 
 def test_verdict_json_round_trip():

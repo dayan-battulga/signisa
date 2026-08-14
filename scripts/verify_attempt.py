@@ -29,20 +29,23 @@ def main() -> None:
     ap.add_argument("--parquet", type=Path, required=True)
     ap.add_argument("--target", required=True)
     ap.add_argument("--db", type=Path, required=True)
-    ap.add_argument("--checkpoint", type=Path)
-    ap.add_argument("--untrained", action="store_true",
-                    help="random-init model instead of a checkpoint (smoke test)")
+    source = ap.add_mutually_exclusive_group(required=True)
+    source.add_argument("--checkpoint", type=Path)
+    source.add_argument("--untrained", action="store_true",
+                        help="random-init model instead of a checkpoint (smoke test)")
     ap.add_argument("--user-level", type=float, default=0.0)
     args = ap.parse_args()
-    if not args.untrained and args.checkpoint is None:
-        ap.error("--checkpoint required unless --untrained")
 
     if args.untrained:
         model = SignModel(Config())
     else:
         state = torch.load(args.checkpoint, map_location="cpu")
         model = SignModel(Config(loss="ce" if "head.bias" in state else "arcface"))
-        model.load_state_dict(state)
+        try:
+            model.load_state_dict(state)
+        except RuntimeError as e:
+            raise SystemExit("checkpoint architecture doesn't match the default Config "
+                             f"(dim/embed_dim/n_classes): {e}")
     model.eval()
 
     holistic = load_holistic(args.parquet)
