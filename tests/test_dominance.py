@@ -12,7 +12,6 @@ from signisa.preprocess.landmarks import (
     N_HOLISTIC,
     POSE_OFFSET,
     RIGHT_HAND_OFFSET,
-    _FACE_POINTS,
 )
 from signisa.preprocess.pipeline import preprocess
 

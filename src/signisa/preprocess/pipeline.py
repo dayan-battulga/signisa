@@ -21,13 +21,10 @@ from dataclasses import dataclass
 import numpy as np
 
 from .landmarks import (
-    HOLISTIC_INDICES,
     L_SHOULDER,
-    MIRROR_PERM,
+    LANDMARK_SETS,
     N_FEATURES,
-    N_NODES,
     NOSE,
-    PARENT,
     R_SHOULDER,
 )
 
@@ -42,14 +39,14 @@ class Preprocessed:
     peak_speed: float    # max per-frame displacement * fps, in shoulder-width units
 
 
-def select_nodes(holistic: np.ndarray) -> np.ndarray:
-    """(T, 543, 3) -> (T, 65, 3)."""
-    return holistic[:, HOLISTIC_INDICES]
+def select_nodes(holistic: np.ndarray, version: str = "v1") -> np.ndarray:
+    """(T, 543, 3) -> (T, n_nodes, 3) for the given landmark version."""
+    return holistic[:, LANDMARK_SETS[version].holistic_indices]
 
 
-def mirrored(seq: np.ndarray) -> np.ndarray:
+def mirrored(seq: np.ndarray, version: str = "v1") -> np.ndarray:
     """Reflect a left-dominant sequence into right-dominant canonical space."""
-    out = seq[:, MIRROR_PERM].copy()
+    out = seq[:, LANDMARK_SETS[version].mirror_perm].copy()
     out[..., 0] = -out[..., 0]
     return out
 
@@ -192,11 +189,12 @@ def peak_speed_of(seq: np.ndarray, fps: float) -> float:
     return float(np.nanmax(step) * fps)
 
 
-def preprocess(holistic: np.ndarray, fps: float = 30.0, left_dominant: bool = False) -> Preprocessed:
+def preprocess(holistic: np.ndarray, fps: float = 30.0, left_dominant: bool = False,
+               version: str = "v1") -> Preprocessed:
     """Full chain: (T, 543, 3) raw holistic landmarks -> Preprocessed tensor + side features."""
-    seq = select_nodes(holistic).astype(np.float64)
+    seq = select_nodes(holistic, version).astype(np.float64)
     if left_dominant:
-        seq = mirrored(seq)
+        seq = mirrored(seq, version)
     seq = fill_short_gaps(seq)
     seq = canonical(scaled(root_centered(seq)))
     seq = one_euro(seq, fps)  # after normalization so filter params act in subject-independent units
@@ -208,16 +206,17 @@ def preprocess(holistic: np.ndarray, fps: float = 30.0, left_dominant: bool = Fa
     coords = resampled(coords, T_OUT)
     confidence = np.clip(resampled(presence[..., None], T_OUT), 0.0, 1.0)
 
-    tensor = with_derived_channels(coords, confidence)
-    assert tensor.shape == (T_OUT, N_NODES, N_FEATURES)
+    tensor = with_derived_channels(coords, confidence, version)
+    assert tensor.shape == (T_OUT, LANDMARK_SETS[version].n_nodes, N_FEATURES)
     return Preprocessed(tensor=tensor, duration_s=duration_s, peak_speed=peak)
 
 
-def with_derived_channels(coords: np.ndarray, confidence: np.ndarray) -> np.ndarray:
-    """(T, 65, 3) coords + (T, 65, 1) confidence -> (T, 65, 10) xyz+velocity+bone+confidence.
+def with_derived_channels(coords: np.ndarray, confidence: np.ndarray,
+                          version: str = "v1") -> np.ndarray:
+    """(T, N, 3) coords + (T, N, 1) confidence -> (T, N, 10) xyz+velocity+bone+confidence.
 
     Shared with signisa.data, which stores only xyz+confidence and re-derives the rest.
     """
     velocity = np.diff(coords, axis=0, prepend=coords[:1])
-    bones = coords - coords[:, PARENT]
+    bones = coords - coords[:, LANDMARK_SETS[version].parent]
     return np.concatenate([coords, velocity, bones, confidence], axis=2).astype(np.float32)

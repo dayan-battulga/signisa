@@ -97,6 +97,26 @@ def test_mirror_permutation_is_valid():
     assert len(np.unique(HOLISTIC_INDICES)) == N_NODES
 
 
+def test_landmark_sets_v1_v2():
+    from signisa.preprocess.landmarks import LANDMARK_SETS
+
+    v1, v2 = LANDMARK_SETS["v1"], LANDMARK_SETS["v2"]
+    assert v1.n_nodes == 65 and v2.n_nodes == 99
+    assert (v1.mirror_perm == MIRROR_PERM).all()  # v1 unchanged by the versioning
+    for s in (v1, v2):
+        assert sorted(s.mirror_perm.tolist()) == list(range(s.n_nodes))
+        assert (s.mirror_perm[s.mirror_perm] == np.arange(s.n_nodes)).all()  # involution
+        assert len(np.unique(s.holistic_indices)) == s.n_nodes
+        assert (s.parent[49:] == 42).all()  # every face node hangs off the nose
+    assert (v2.holistic_indices[:59] == v1.holistic_indices[:59]).all()  # shared prefix
+
+
+def test_v2_preprocess_shape():
+    result = preprocess(synthetic_holistic(), version="v2")
+    assert result.tensor.shape == (T_OUT, 99, 10)
+    assert np.isfinite(result.tensor).all()
+
+
 def test_kaggle_loader_round_trip(tmp_path):
     import pandas as pd
 
