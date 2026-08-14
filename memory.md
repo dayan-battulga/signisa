@@ -5,6 +5,26 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 4 (2026-08-13, Phase 1 results + diagnostic):
+- **Phase 1 Kaggle results (full asl-signs, signer-independent 4-of-21 val):**
+  CE 72.9% TAR@FAR5 / 46.3% top-1 / 15.3% mean EER; ArcFace 72.6% / 48.4% /
+  13.8%. Cluster overlaps improved nearly across the board under ArcFace
+  (family 30.8% -> 19.6%); happy/please still flagged at 51.3%.
+  **Success criterion (>90% TAR@FAR5) NOT met.** Both losses hit the same
+  ~73% TAR wall -> suspected shared cause in the data or a val signer, not
+  the loss function.
+- Built notebooks/kaggle_diagnose.ipynb (CPU): inputs discovered by glob (no
+  hardcoded mounts), loss inferred from state_dict keys ('head.bias' => ce).
+  Reports TAR/mean-EER/genuine-spread by val participant with mirrored flags
+  (bad-signer / wrong-mirroring hypothesis), per-sign TAR ascending, and the
+  100 worst genuine trials with the centroid that beat them ->
+  diagnosis_report.md + worst_genuine.csv. Analysis logic dry-run locally
+  against a 30-sample mini-run before shipping.
+- run_evaluation now reports the per-participant breakdown by default (in
+  metrics + metrics_report.md) and returns the full trial table
+  (metrics["trials"]: sequence_id, participant, attempt, target, score,
+  genuine) for downstream diagnostics.
+
 Session 3 (2026-08-05, Phase 1 prep — everything CPU-smoke-tested, nothing
 trained for real yet):
 - Tensor storage slimmed to (160, 65, 4) float16 = xyz + confidence (~8 GB for
