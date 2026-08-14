@@ -5,6 +5,33 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 6 (2026-08-14, diagnostic round 2 — orientation test + noise bound):
+- **Round-1 diagnosis findings (Kaggle):** mirrored val signers ~82% TAR /
+  7.7% EER vs unmirrored 68.7% / 56.7% -> dominance-vote error suspected, not
+  model failure. Worst genuine trials look like wrong variants / mislabels
+  (sad x24, water at 0.09, brother->boy at 0.99) — consistent with PopSign's
+  documented ~19% noise.
+- **Key fact proven + tested:** canonical-space mirroring of a stored tensor
+  (MIRROR_PERM + negate x, z unchanged) is EXACTLY equivalent to mirroring the
+  raw sequence before preprocess (0.0 error on real data — every pipeline step
+  is mirror-equivariant; z re-derives as x*up). `signisa.data.mirrored_stored`.
+  This lets the diagnose notebook test both orientations WITHOUT raw parquets.
+- kaggle_diagnose.ipynb round-2 cells (same inputs, CPU): (1) orientation
+  test — every val curriculum attempt embedded both ways, per-participant
+  median/TAR stored vs flipped vs orientation-max + flip_wins rate, with
+  auto-verdicts (wrong-vote if flipped TAR +10pp; mixed-orientation clips if
+  flip_wins ~50% and orientation-max helps); (2) clean-TAR bound — suspect =
+  genuine < 0.45 beaten by a non-confusable; rates overall/per-sign, >15%
+  flagged, TAR recomputed without suspects at the same global threshold;
+  (3) sad deep-dive — histogram, largest-gap bimodality, low-cluster rival
+  concentration + internal embedding coherence (>~0.6 -> real second variant,
+  low -> scattered mislabels) -> data-driven paragraph. Writes
+  diagnosis2_report.md. All cells dry-run locally against a 30-sample mini-run.
+- Caveat noted in report design: orientation-max TAR is computed against the
+  fixed global threshold (impostor scores unchanged); at deployment
+  orientation-max would shift impostors too — good enough for the decisive
+  comparison, recalibrate before shipping it as the fix.
+
 Session 5 (2026-08-14, decision layer — task3b Part 2, CPU-only):
 - `src/signisa/decision/policy.py`: DecisionConfig (user_level 0..1,
   margin_delta 0.05, tau_bg 0.2 placeholder until Phase 4 OpenMax) +
