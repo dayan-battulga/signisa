@@ -45,6 +45,10 @@ def train_model(cfg: Config, train_ds: Dataset, val_ds: Dataset,
                 device: str = "cpu", max_steps: int | None = None) -> tuple[SignModel, dict]:
     """Returns (best model by val top-1, history). max_steps caps total steps for smoke tests."""
     torch.manual_seed(cfg.seed)
+    for ds in (train_ds, val_ds):  # a v1 model must never silently consume v2 tensors
+        version = getattr(ds, "landmark_version", None)
+        assert version is None or version == cfg.landmark_version, (
+            f"dataset is {version} but the model expects {cfg.landmark_version}")
     model = SignModel(cfg).to(device)
     train_loader = make_loader(train_ds, cfg, shuffle=True)
     val_loader = make_loader(val_ds, cfg, shuffle=False)

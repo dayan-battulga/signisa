@@ -17,7 +17,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .config import AugmentConfig
-from .preprocess.landmarks import MIRROR_PERM
+from .preprocess.landmarks import LANDMARK_SETS
 from .preprocess.pipeline import with_derived_channels
 
 
@@ -56,14 +56,14 @@ def augmented(coords: np.ndarray, confidence: np.ndarray, cfg: AugmentConfig,
     return coords, confidence
 
 
-def mirrored_stored(stored: np.ndarray) -> np.ndarray:
-    """Flip a stored (T, 65, 4) tensor's orientation in canonical space.
+def mirrored_stored(stored: np.ndarray, version: str = "v1") -> np.ndarray:
+    """Flip a stored (T, N, 4) tensor's orientation in canonical space.
 
     Exactly equivalent to having mirrored the raw sequence before preprocess
     (every pipeline step is mirror-equivariant; verified to zero error on real
     data — z keeps its sign because the canonical frame re-derives it as x*up).
     """
-    out = stored[:, MIRROR_PERM].copy()
+    out = stored[:, LANDMARK_SETS[version].mirror_perm].copy()
     out[..., 0] = -out[..., 0]
     return out
 
@@ -93,8 +93,13 @@ class ShardDataset(Dataset):
                  aug_config: AugmentConfig | None = None, participants=None):
         tensors_dir = Path(tensors_dir)
         index = pd.read_csv(tensors_dir / "index.csv")
+        # pre-versioning shards carry no column and are v1
+        self.landmark_version = (index.landmark_version.iloc[0]
+                                 if "landmark_version" in index.columns else "v1")
         self.tensors = _load_shards(str(tensors_dir))
-        assert self.tensors.shape[1:] == (160, 65, 4), self.tensors.shape
+        n_nodes = LANDMARK_SETS[self.landmark_version].n_nodes
+        assert self.tensors.shape[1:] == (160, n_nodes, 4), (
+            f"{self.tensors.shape} does not match landmark_version={self.landmark_version}")
         assert len(index) == len(self.tensors), "index.csv/shard mismatch — stale shards in out-dir?"
         index["row"] = np.arange(len(index))  # position before filtering = shard slot
         if participants is not None:
@@ -114,5 +119,5 @@ class ShardDataset(Dataset):
             # torch seeds each DataLoader worker differently; numpy state would fork identically
             rng = np.random.default_rng(int(torch.randint(0, 2**31, (1,)).item()))
             coords, confidence = augmented(coords, confidence, self.aug_config, rng)
-        tensor = with_derived_channels(coords, confidence)
+        tensor = with_derived_channels(coords, confidence, self.landmark_version)
         return torch.from_numpy(tensor), int(row["canonical_label_id"])

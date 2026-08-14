@@ -97,6 +97,8 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
 
     train_ds = ShardDataset(tensors_dir, participants=train_pids)
     val_ds = ShardDataset(tensors_dir, participants=val_participants)
+    assert train_ds.landmark_version == cfg.landmark_version, (
+        f"tensors are {train_ds.landmark_version} but the model expects {cfg.landmark_version}")
     train_emb = compute_embeddings(model, train_ds, device, cfg.batch_size)
     val_emb = compute_embeddings(model, val_ds, device, cfg.batch_size)
     centroids = build_centroids(train_emb, train_ds.index.canonical_label_id.to_numpy())
@@ -187,9 +189,11 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
         "n_impostor": len(impostor_all), "skipped_missing_centroid": skipped,
         "per_sign": per_sign, "clusters": clusters,
         "per_participant": per_participant, "trials": tdf,
+        "landmark_version": cfg.landmark_version, "torch_version": torch.__version__,
     }
     _write_report(metrics, out_dir / "metrics_report.md", cfg)
-    _write_trained_db(db, centroids, per_sign, id_of, out_dir / "curriculum_db_trained.json")
+    _write_trained_db(db, centroids, per_sign, id_of, out_dir / "curriculum_db_trained.json",
+                      cfg.landmark_version)
     return metrics
 
 
@@ -201,6 +205,7 @@ def _write_report(m: dict, path: Path, cfg: Config) -> None:
     eers = [v["eer"] for v in m["per_sign"].values() if v["eer"] is not None]
     lines = [
         "# Verification metrics (signer-independent)\n",
+        f"- landmark_version {m['landmark_version']}, torch {m['torch_version']}",
         f"- Val participants: {m['val_participants']} ({m['n_val']} sequences; "
         f"{m['n_train']} train sequences)",
         f"- **TAR@FAR={cfg.far_target:.0%}: {m['tar_at_far']:.1%}** "
@@ -236,8 +241,9 @@ def _write_report(m: dict, path: Path, cfg: Config) -> None:
 
 
 def _write_trained_db(db: dict, centroids: dict, per_sign: dict, id_of: dict,
-                      path: Path) -> None:
+                      path: Path, landmark_version: str) -> None:
     out = json.loads(json.dumps(db))  # deep copy
+    out["landmark_version"] = landmark_version
     for sign, entry in out["signs"].items():
         label = id_of[sign]
         if label in centroids:

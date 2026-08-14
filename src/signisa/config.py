@@ -3,6 +3,8 @@ in the training loop — every knob lives here. All values are starting points."
 
 from dataclasses import dataclass, field
 
+from .preprocess.landmarks import LANDMARK_SETS
+
 
 @dataclass
 class AugmentConfig:
@@ -21,7 +23,8 @@ class Config:
     # model (Kaggle 1st-place cnn_transformer pattern, ~2M param budget; docs/research/task3a)
     n_classes: int = 246
     t_frames: int = 160
-    n_nodes: int = 65
+    landmark_version: str = "v1"
+    n_nodes: int = 65  # derived from landmark_version in __post_init__
     n_channels: int = 10
     dim: int = 192
     n_conv_blocks: int = 3
@@ -50,3 +53,6 @@ class Config:
     far_target: float = 0.05
     cluster_overlap_flag: float = 0.5
     augment: AugmentConfig = field(default_factory=AugmentConfig)
+
+    def __post_init__(self):
+        self.n_nodes = LANDMARK_SETS[self.landmark_version].n_nodes

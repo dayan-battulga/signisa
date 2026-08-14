@@ -143,3 +143,29 @@ class SignModel(nn.Module):
 
 def parameter_count(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def save_checkpoint(model: SignModel, path) -> None:
+    """State dict + the metadata needed to reload without guessing."""
+    torch.save({"state_dict": model.state_dict(), "loss": model.cfg.loss,
+                "landmark_version": model.cfg.landmark_version}, path)
+
+
+def load_checkpoint(path) -> SignModel:
+    """Load either format: new metadata dicts, or legacy raw v1 state dicts
+    (loss inferred from the presence of the CE head bias)."""
+    loaded = torch.load(path, map_location="cpu")
+    if "state_dict" in loaded:
+        cfg = Config(loss=loaded["loss"], landmark_version=loaded["landmark_version"])
+        state = loaded["state_dict"]
+    else:
+        cfg = Config(loss="ce" if "head.bias" in loaded else "arcface")
+        state = loaded
+    model = SignModel(cfg)
+    try:
+        model.load_state_dict(state)
+    except RuntimeError as e:
+        raise RuntimeError("checkpoint architecture doesn't match the default Config "
+                           f"(dim/embed_dim/n_classes/landmark_version): {e}") from e
+    model.eval()
+    return model

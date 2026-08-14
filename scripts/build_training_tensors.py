@@ -60,6 +60,7 @@ def main() -> None:
     ap.add_argument("--out-dir", type=Path, default=Path("data/tensors"))
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--fps", type=float, default=30.0)
+    ap.add_argument("--landmark-version", default="v1", choices=["v1", "v2"])
     args = ap.parse_args()
 
     labels = json.load(args.labels.open())
@@ -82,12 +83,14 @@ def main() -> None:
         if not shard:
             return
         np.savez_compressed(args.out_dir / f"shard_{n_shards:04d}.npz",
-                            tensors=np.stack(shard), sequence_id=np.array(shard_ids))
+                            tensors=np.stack(shard), sequence_id=np.array(shard_ids),
+                            landmark_version=np.array(args.landmark_version))
         shard, shard_ids, n_shards = [], [], n_shards + 1
 
     for row in train.itertuples():
         mirrored = row.participant_id in left_pids
-        result = preprocess(load_holistic(row.parquet), fps=args.fps, left_dominant=mirrored)
+        result = preprocess(load_holistic(row.parquet), fps=args.fps, left_dominant=mirrored,
+                            version=args.landmark_version)
         tensor16 = result.tensor[..., [0, 1, 2, 9]].astype(np.float16)  # xyz + confidence
         # catches float16 overflow from a degenerate shoulder-width normalization
         assert np.isfinite(tensor16).all(), f"non-finite float16 tensor for {row.sequence_id}"
@@ -100,6 +103,7 @@ def main() -> None:
             "duration_s": round(result.duration_s, 4),
             "peak_speed": round(result.peak_speed, 4),
             "mirrored": mirrored,
+            "landmark_version": args.landmark_version,
         })
         if len(shard) == SHARD_SIZE:
             flush()
@@ -108,7 +112,7 @@ def main() -> None:
 
     pd.DataFrame(index_rows).to_csv(args.out_dir / "index.csv", index=False)
     n = len(index_rows)
-    print(f"{n} sequences -> {n_shards} shard(s) in {args.out_dir}; "
+    print(f"{n} sequences ({args.landmark_version}) -> {n_shards} shard(s) in {args.out_dir}; "
           f"{len(left_pids)} left-dominant participants, "
           f"{sum(r['mirrored'] for r in index_rows)} sequences mirrored")
     print(f"throughput: dominance pass {n / (t1 - t0):.1f} seq/s, "

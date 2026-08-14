@@ -150,6 +150,74 @@ def test_parameter_budget():
     assert parameter_count(SignModel(Config())) < 2_000_000
 
 
+@pytest.fixture(scope="session")
+def tensors_dir_v2(tmp_path_factory):
+    out = tmp_path_factory.mktemp("tensors_v2")
+    subprocess.run(
+        [sys.executable, "scripts/build_training_tensors.py", "--landmarks-dir", str(SAMPLES),
+         "--out-dir", str(out), "--landmark-version", "v2", "--limit", "10"],
+        check=True, cwd=ROOT)
+    return out
+
+
+def test_v2_tensors_dataset_and_model(tensors_dir_v2):
+    shard = np.load(tensors_dir_v2 / "shard_0000.npz")
+    assert shard["tensors"].shape[1:] == (160, 99, 4)
+    assert str(shard["landmark_version"]) == "v2"
+
+    ds = ShardDataset(tensors_dir_v2)
+    assert ds.landmark_version == "v2"
+    tensor, _ = ds[0]
+    assert tensor.shape == (160, 99, 10)
+
+    cfg = small_config("ce", landmark_version="v2")
+    _, logits = SignModel(cfg)(tensor[None])
+    assert logits.shape == (1, 246)
+
+    # v1 model must never silently consume v2 tensors
+    with pytest.raises(AssertionError, match="expects v1"):
+        train_model(small_config("ce", epochs=1), ds, ds)
+
+
+def test_v2_lip_mirror_pairs_on_real_frames(tensors_dir_v2):
+    from signisa.preprocess.landmarks import LANDMARK_SETS
+    from signisa.preprocess.kaggle import load_holistic
+    from signisa.preprocess.pipeline import mirrored, select_nodes
+
+    v2 = LANDMARK_SETS["v2"]
+    seq = select_nodes(load_holistic(SAMPLES / "1019555958.parquet"), "v2")
+    lips = range(59, 99)
+    full = seq[~np.isnan(seq[:, list(lips)]).any(axis=(1, 2))
+               & ~np.isnan(seq[:, 42]).any(axis=1)]
+    assert len(full) > 0
+    nose_x = full[:, 42, 0]
+    for i in lips:
+        j = int(v2.mirror_perm[i])
+        if j == i:  # midline lip point: stays near the nose line
+            assert abs((full[:, i, 0] - nose_x).mean()) < 0.02
+        else:       # paired lip points straddle the nose x
+            assert (full[:, i, 0] - nose_x).mean() * (full[:, j, 0] - nose_x).mean() < 0
+    # mirrored lip x-coordinates reflect: node i picks up the partner's negated x
+    m = mirrored(full, "v2")
+    np.testing.assert_allclose(m[:, list(lips), 0],
+                               -full[:, v2.mirror_perm[list(lips)], 0], atol=1e-12)
+
+
+def test_checkpoint_round_trip(tmp_path):
+    from signisa.models import load_checkpoint, save_checkpoint
+
+    model = SignModel(Config(loss="arcface", landmark_version="v2"))  # default dims:
+    save_checkpoint(model, tmp_path / "m.pt")                         # loaders rebuild those
+    loaded = load_checkpoint(tmp_path / "m.pt")
+    assert loaded.cfg.loss == "arcface" and loaded.cfg.landmark_version == "v2"
+
+    # legacy raw v1 state dicts still load (loss inferred from head.bias)
+    legacy = SignModel(Config(loss="ce"))
+    torch.save(legacy.state_dict(), tmp_path / "legacy.pt")
+    old = load_checkpoint(tmp_path / "legacy.pt")
+    assert old.cfg.loss == "ce" and old.cfg.landmark_version == "v1"
+
+
 def test_far_threshold_guarantee_and_overlap_estimate():
     from signisa.eval import far_threshold, overlap_estimate
 

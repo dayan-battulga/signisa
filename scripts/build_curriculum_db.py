@@ -65,7 +65,7 @@ def build_curriculum_db() -> dict:
         bad = [c for c in e["confusables"] if c not in canonical_labels]
         assert not bad, f"{s} has confusables that are not canonical labels: {bad}"
 
-    return {"version": 1, "n_signs": len(entries),
+    return {"version": 1, "n_signs": len(entries), "landmark_version": None,
             "clusters": clusters, "signs": entries}
 
 
