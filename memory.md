@@ -31,6 +31,16 @@ Session 6 (2026-08-14, diagnostic round 2 — orientation test + noise bound):
   fixed global threshold (impostor scores unchanged); at deployment
   orientation-max would shift impostors too — good enough for the decisive
   comparison, recalibrate before shipping it as the fix.
+- Adversarial-review outcome (session 6): mirror equivalence upgraded to
+  **bit-exact** — verified 30/30 samples both directions AND 13 adversarial
+  fallback synthetics (missing shoulders/nose, degenerate width, T=1);
+  the equivalence test now asserts exact float16 equality. Fixes applied:
+  suspect definition requires best_impostor > score (top rival is a
+  non-confusable at high base rate since the random pool excludes confusables
+  — without the clause, "suspect" collapsed toward plain score<0.45 and
+  inflated the noise estimate); orientation verdicts key on threshold-free
+  genuine MEDIANS (TAR columns descriptive, caveat in report); sad histogram
+  bins cover [-1, 1]. Stale 10-channel data/tensors_smoke deleted.
 
 Session 5 (2026-08-14, decision layer — task3b Part 2, CPU-only):
 - `src/signisa/decision/policy.py`: DecisionConfig (user_level 0..1,

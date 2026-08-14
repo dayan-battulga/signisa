@@ -60,12 +60,13 @@ def test_shards_store_4_channels_and_dataset_reconstructs(tensors_dir):
                       left_dominant=bool(row.mirrored)).tensor
     np.testing.assert_allclose(tensor.numpy(), full, atol=1e-2)  # float16 storage rounding
 
-    # canonical-space flip == mirroring the raw sequence before preprocess
+    # canonical-space flip == mirroring the raw sequence before preprocess — BIT-exact
+    # on the float16 path (float16 rounding is sign-symmetric, so it commutes with the flip)
     from signisa.data import mirrored_stored
-    flipped = mirrored_stored(ds.tensors[int(row.row)].astype(np.float32))
+    flipped = mirrored_stored(ds.tensors[int(row.row)])
     other = preprocess(load_holistic(SAMPLES / f"{row.sequence_id}.parquet"),
                        left_dominant=not bool(row.mirrored)).tensor[..., [0, 1, 2, 9]]
-    np.testing.assert_allclose(flipped, other, atol=1e-2)
+    assert np.array_equal(flipped, other.astype(np.float16))
 
 
 def test_augmentations_shapes_and_identity():
