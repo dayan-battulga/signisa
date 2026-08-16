@@ -55,7 +55,8 @@ class Config:
     seed: int = 42
     num_workers: int = 2
     # evaluation
-    n_val_participants: int = 4
+    n_val_participants: int = 4      # held-out PopSign signers (fixed since Phase 1)
+    n_val_citizen_signers: int = 5   # held-out ASL Citizen signers when that domain is present
     n_random_impostors: int = 20
     far_target: float = 0.05
     cluster_overlap_flag: float = 0.5

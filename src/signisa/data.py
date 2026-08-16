@@ -155,7 +155,10 @@ class ShardDataset(Dataset):
             "index.csv/shard mismatch — stale shards in out-dir?")
         index["row"] = np.arange(len(index))  # position before filtering = shard slot
         if participants is not None:
-            index = index[index.participant_id.isin(set(participants))].reset_index(drop=True)
+            # str-normalized: merged indexes mix "ac_<id>" strings with numeric PopSign
+            # ids, and callers pass either type
+            keep = {str(p) for p in participants}
+            index = index[index.participant_id.astype(str).isin(keep)].reset_index(drop=True)
         self.index = index
         self.lengths = np.diff(self.offsets)[index.row.to_numpy()]
         self.augment = augment

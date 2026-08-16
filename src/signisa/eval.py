@@ -21,10 +21,30 @@ from .models import SignModel
 from .train import make_loader
 
 
-def held_out_participants(participant_ids, n: int, seed: int) -> list[int]:
-    pids = sorted(set(int(p) for p in participant_ids))
-    rng = np.random.default_rng(seed)
-    return sorted(int(p) for p in rng.choice(pids, size=n, replace=False))
+def held_out_participants(participant_ids, n: int, seed: int) -> list:
+    """Seeded signer draw. Numeric ids sort numerically and return as ints, so the
+    historic PopSign selection (and every published number) is reproduced exactly;
+    "ac_<id>" Citizen ids sort as strings after them."""
+    pids = sorted({str(p) for p in participant_ids},
+                  key=lambda p: (0, int(p)) if p.isdigit() else (1, p))
+    picked = np.random.default_rng(seed).choice(pids, size=n, replace=False)
+    return sorted((int(p) if p.isdigit() else str(p) for p in picked),
+                  key=lambda p: (0, p) if isinstance(p, int) else (1, p))
+
+
+def default_val_participants(index: pd.DataFrame, cfg: Config) -> list:
+    """The two-domain validation split: the SAME cfg.n_val_participants PopSign
+    signers as every historic run, plus up to cfg.n_val_citizen_signers ASL Citizen
+    signers when that domain is present (always leaving >= 1 in train)."""
+    domain = (index.domain if "domain" in index.columns
+              else pd.Series("popsign", index=index.index))
+    pids = index.participant_id.astype(str)
+    val = held_out_participants(pids[domain == "popsign"], cfg.n_val_participants, cfg.seed)
+    citizen = pids[domain == "asl_citizen"]
+    n_citizen = min(cfg.n_val_citizen_signers, citizen.nunique() - 1)
+    if n_citizen > 0:
+        val += held_out_participants(citizen, n_citizen, cfg.seed)
+    return val
 
 
 @torch.no_grad()
@@ -99,9 +119,13 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
     id_of = {c["label"]: c["id"] for c in labels["classes"]}
 
     index = pd.read_csv(tensors_dir / "index.csv")
+    index["participant_id"] = index.participant_id.astype(str)
+    if "domain" not in index.columns:
+        index["domain"] = "popsign"  # pre-merge indexes are pure PopSign
     if val_participants is None:
-        val_participants = held_out_participants(
-            index.participant_id, cfg.n_val_participants, cfg.seed)
+        val_participants = default_val_participants(index, cfg)
+    val_participants = [str(p) for p in val_participants]
+    domain_of = dict(zip(index.participant_id, index.domain))
     train_pids = sorted(set(index.participant_id) - set(val_participants))
 
     train_ds = ShardDataset(tensors_dir, participants=train_pids)
@@ -126,18 +150,18 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
     trials = []
     skipped = 0
     val_seqs = val_ds.index.sequence_id.to_numpy()
-    val_pids_col = val_ds.index.participant_id.to_numpy()
+    val_pids_col = val_ds.index.participant_id.astype(str).to_numpy()
     for emb, label, seq, pid in zip(val_emb, val_labels, val_seqs, val_pids_col):
         label = int(label)
         if label not in confusable_ids or label not in centroids:
             skipped += label in confusable_ids  # curriculum sign missing a centroid
             continue
-        trials.append((int(seq), int(pid), label, label, float(emb @ centroids[label]), True))
+        trials.append((str(seq), pid, label, label, float(emb @ centroids[label]), True))
         hard = [c for c in confusable_ids[label] if c in centroids]
         pool = [i for i in ids if i != label and i not in hard]
         rand = rng.choice(pool, size=min(cfg.n_random_impostors, len(pool)), replace=False)
         for target in hard + [int(r) for r in rand]:
-            trials.append((int(seq), int(pid), label, target,
+            trials.append((str(seq), pid, label, target,
                            float(emb @ centroids[target]), False))
     tdf = pd.DataFrame(trials, columns=["sequence_id", "participant", "attempt",
                                         "target", "score", "genuine"])
@@ -161,6 +185,30 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
                           "eer_threshold": thr,
                           "far5_threshold": far_threshold(i, cfg.far_target)}
 
+    # per-domain breakdown, each domain at ITS OWN FAR threshold: the popsign row is
+    # the number comparable to historic popsign-only runs (identical trials and
+    # threshold there), and each domain's TAR is meaningful on its own impostors
+    per_domain = {}
+    tdf["domain"] = tdf.participant.map(domain_of)
+    val_row_domains = val_ds.index.participant_id.astype(str).map(domain_of).to_numpy()
+    for dom in sorted(tdf.domain.unique()):
+        sub = tdf[tdf.domain == dom]
+        g = sub[sub.genuine].score.to_numpy()
+        i = sub[~sub.genuine].score.to_numpy()
+        thr = far_threshold(i, cfg.far_target) if len(i) else None
+        sign_eers = [eer_of(sg, si)[0] for t in sub.target.unique()
+                     if len(sg := sub[(sub.target == t) & sub.genuine].score.to_numpy())
+                     and len(si := sub[(sub.target == t) & ~sub.genuine].score.to_numpy())]
+        row_mask = val_row_domains == dom
+        per_domain[dom] = {
+            "n_signers": sub.participant.nunique(), "n_genuine": len(g),
+            "n_impostor": len(i),
+            "tar_at_far": float((g >= thr).mean()) if thr is not None and len(g) else None,
+            "mean_eer": float(np.mean(sign_eers)) if sign_eers else None,
+            "top1": float((predicted[row_mask] == val_labels[row_mask]).mean())
+            if row_mask.any() else None,
+        }
+
     # per-participant breakdown at the GLOBAL threshold — a bad or wrongly-mirrored
     # val signer shows up as an outlier row here
     per_participant = {}
@@ -171,7 +219,7 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
                      if len(sg := sub[(sub.target == t) & sub.genuine].score.to_numpy())
                      and len(si := sub[(sub.target == t) & ~sub.genuine].score.to_numpy())]
         vrows = index[index.participant_id == pid]
-        per_participant[int(pid)] = {
+        per_participant[pid] = {
             "n_genuine": len(g),
             "tar_at_far": float((g >= far5_global).mean()) if len(g) else None,
             "mean_eer": float(np.mean(sign_eers)) if sign_eers else None,
@@ -196,7 +244,7 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
         "top1_closed_set": top1, "tar_at_far": tar_at_far, "far_target": cfg.far_target,
         "global_far_threshold": far5_global, "n_genuine": len(genuine_all),
         "n_impostor": len(impostor_all), "skipped_missing_centroid": skipped,
-        "per_sign": per_sign, "clusters": clusters,
+        "per_sign": per_sign, "clusters": clusters, "per_domain": per_domain,
         "per_participant": per_participant, "trials": tdf,
         "landmark_version": cfg.landmark_version, "torch_version": torch.__version__,
     }
@@ -226,7 +274,15 @@ def _write_report(m: dict, path: Path, cfg: Config) -> None:
         f"- Closed-set top-1 over all {cfg.n_classes} classes: {m['top1_closed_set']:.1%}",
         f"- Mean per-sign EER: {np.mean(eers):.1%} (n={len(eers)})" if eers else "- No per-sign EERs",
         f"- Skipped curriculum attempts missing a centroid: {m['skipped_missing_centroid']}\n",
-        "## Per-participant (val, at the global threshold)\n",
+        "## Per-domain (each at its OWN FAR threshold; the popsign row is the "
+        "number comparable to historic popsign-only runs)\n",
+        "| domain | signers | genuine | impostor | TAR@FAR | mean EER | top-1 |",
+        "|---|---|---|---|---|---|---|",
+        *[f"| {dom} | {v['n_signers']} | {v['n_genuine']} | {v['n_impostor']} "
+          f"| {_fmt(v['tar_at_far'], '.1%')} | {_fmt(v['mean_eer'], '.1%')} "
+          f"| {_fmt(v['top1'], '.1%')} |"
+          for dom, v in m["per_domain"].items()],
+        "\n## Per-participant (val, at the global threshold)\n",
         "| participant | genuine | TAR@FAR | mean EER | genuine median | IQR | mirrored |",
         "|---|---|---|---|---|---|---|",
         *[f"| {pid} | {v['n_genuine']} | {_fmt(v['tar_at_far'], '.1%')} "

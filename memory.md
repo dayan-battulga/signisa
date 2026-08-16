@@ -5,6 +5,68 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 10 (2026-08-17, ASL Citizen extraction infrastructure):
+- **Strategy call: signer diversity promoted to the active phase** (PopSign has 21
+  signers; ASL Citizen has 52 and raw video). 1c training may run in parallel;
+  nothing here depends on its outcome.
+- **Extractor reality: legacy mp.solutions.holistic is GONE** from every mediapipe
+  installable on Python 3.13 (tried 1.0.1 and 0.10.35). All new extraction uses the
+  Tasks-API HolisticLandmarker (13 MB .task bundle in data/models/, gitignored;
+  create_landmarker prints the curl command when missing). This is a recorded
+  extractor seam vs the Kaggle-provenance training data: every extracted npz stores
+  mediapipe_version, and the per-domain eval section is the instrument that measures
+  the shift. Tasks face mesh = 478 points (468 + 10 iris) — holistic_row keeps the
+  first 468 so the Kaggle 543-row layout is unchanged.
+- **src/signisa/preprocess/holistic.py**: create_landmarker / detect_frame /
+  holistic_row / extract_video, lazy [live] imports. live_verify.py rewritten onto
+  it (was dead code under any modern mediapipe).
+- **scripts/extract_holistic.py**: multiprocess (Pool + imap_unordered, one fresh
+  landmarker PER CLIP — detect_for_video requires monotonic timestamps per instance
+  and tracking state must not leak across clips; smoke test caught this), atomic
+  .part->rename writes so npz-exists IS the completion manifest, zero-detection
+  clips rejected into failures.csv and skipped on restart (delete the CSV to retry).
+  Full (T,543,3) float16 stored so future landmark sets derive without re-extraction.
+  Smoke-tested on 3 local videos: positive / partial / zero-detection + resume.
+- **scripts/map_asl_citizen.py**: split CSVs (Participant ID, Video file, Gloss,
+  ASL-LEX Code) -> data/meta/asl_citizen_mapping.csv + asl_citizen_coverage.md.
+  Match order: exact normalized ASL-LEX entry, then gloss/alias (Phase 0 ALIAS both
+  directions) — but a row whose code names a DIFFERENT variant of our class
+  (dog_2 vs our dog_1) is excluded as a variant mismatch (visually different sign),
+  reported separately. CITIZEN_ALIAS placeholder to fill from the unmatched list
+  after download. Signers namespaced "ac_<id>".
+- **Merged tensors**: build_training_tensors.py takes --citizen-npz-dir +
+  --citizen-mapping alongside the Kaggle parquets; index.csv gains a domain column
+  (popsign | asl_citizen) and participant_id is written as str. Per-signer dominance
+  vote for citizen clips via hand_dominance on the npz. Mapping rows without an npz
+  (extraction failures) are skipped with a count.
+- **Dual-domain eval**: held_out_participants is now type-preserving and
+  bit-identical to the historic selection for numeric ids (regression-tested against
+  the old implementation verbatim); default_val_participants = the SAME 4 PopSign
+  signers + up to cfg.n_val_citizen_signers (5) Citizen signers (always leaving >=1
+  in train). metrics/report gain a per-domain section, each domain at ITS OWN FAR
+  threshold — the popsign row is the number comparable to all historic runs.
+  Trials now carry str sequence_id/participant + a domain column.
+- kaggle_train.ipynb split cell uses default_val_participants and str-safe
+  train-pid filtering.
+- Adversarial-review outcome (session 10, 4 lenses + 2 refuters per finding):
+  9 confirmed / 8 refuted. Fixed: (1) kaggle_diagnose cells 6+7 int() sequence-id
+  casts — crash on merged tensors (citizen ids are video stems) AND a str-vs-int64
+  emb_of key regression that would np.stack([]) in the sad bimodal branch even on
+  legacy tensors; ids are str-normalized at every notebook seam now. (2) extraction
+  pool switched multiprocessing.Pool -> ProcessPoolExecutor: a native worker crash
+  (mediapipe segfault/OOM) now raises BrokenProcessPool instead of hanging
+  imap_unordered forever (refuter REPRODUCED the hang with a SIGKILL'd worker).
+  (3) failures.csv header flushed at creation — a hard kill used to leave a
+  headerless CSV whose first data row got eaten as the header on resume.
+  (4) citizen_clips re-checks mapping label ids against THIS build's labels file
+  (ids are positional; stale mapping = silently scrambled labels) and hard-fails on
+  a nonexistent npz dir / zero joinable clips. (5) match_row: a coded Citizen row
+  gloss-matching one of the 17 null-entry classes is a variant mismatch (STORE
+  carrying shop_1 IS the SHOPPING sign — the exact case Phase 0 refused to alias).
+  Notable refuted: wall-clock timestamp collisions in live_verify (a full inference
+  sits between samples), fps>1000 metadata (not an ASL Citizen input), os.replace
+  durability (power-loss window accepted).
+
 Session 9 (2026-08-16, Phase 1c — ragged tensors + bundled recipe):
 - **Lips (v2) killed by the pre-registered criterion**: 49.5% top-1 (-0.1 vs v1),
   TAR 73.0%. Five single levers now dead and the Kaggle winners hit ~0.82 at the
@@ -358,6 +420,14 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
   script must stay importable without torch (it's the `[train]` extra).
 - Checkpoints from before session 9 are unloadable — `embedder.head` grew by the two
   side-feature inputs (dim+2) and `side_norm` is new. Retrain, don't port.
+- participant_id is a STRING everywhere from session 10 (merged indexes mix ac_
+  strings with numeric PopSign ids). pandas re-infers int64 on pure-numeric CSVs, so
+  every reader normalizes with astype(str); metrics keys / trials.participant are str.
+- mediapipe pinned by reality, not pyproject: [live] needs a Tasks-API build
+  (>=0.10.30); mp.solutions imports are dead. HolisticLandmarker VIDEO mode requires
+  strictly increasing timestamps PER INSTANCE — never reuse a landmarker across clips.
+- The extraction failures.csv doubles as a skip-list on restart; deleting it retries
+  failures. Zero-detection is deterministic, so retries only matter after code changes.
 
 ## Missing / absent from expected inputs
 

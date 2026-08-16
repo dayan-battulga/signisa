@@ -8,7 +8,9 @@ Usage:
     --smoke <parquet> runs the identical post-capture path headless (no camera,
     no mediapipe needed); --untrained swaps in a random-init model.
 
-Needs the [live] extra for the camera path: pip install -e ".[live]"
+Needs the [live] extra for the camera path (pip install -e ".[live]") plus the
+HolisticLandmarker model bundle — create_landmarker prints the curl command if
+it's missing.
 """
 
 import argparse
@@ -22,39 +24,24 @@ from signisa.config import Config
 from signisa.decision import DecisionConfig, verify_attempt
 from signisa.models import SignModel, embedding_of, load_checkpoint
 from signisa.preprocess.dominance import hand_dominance
-from signisa.preprocess.kaggle import load_holistic
-from signisa.preprocess.landmarks import (
-    FACE_OFFSET,
-    LEFT_HAND_OFFSET,
-    N_HOLISTIC,
-    POSE_OFFSET,
-    RIGHT_HAND_OFFSET,
+from signisa.preprocess.holistic import (
+    DEFAULT_MODEL,
+    create_landmarker,
+    detect_frame,
+    holistic_row,
 )
+from signisa.preprocess.kaggle import load_holistic
 from signisa.preprocess.pipeline import preprocess
 
 
-def holistic_row(results) -> np.ndarray:
-    """One MediaPipe Holistic result -> (543, 3) in the Kaggle layout, NaN when missing."""
-    row = np.full((N_HOLISTIC, 3), np.nan, dtype=np.float32)
-    for landmarks, offset, n in [
-        (results.face_landmarks, FACE_OFFSET, 468),
-        (results.left_hand_landmarks, LEFT_HAND_OFFSET, 21),
-        (results.pose_landmarks, POSE_OFFSET, 33),
-        (results.right_hand_landmarks, RIGHT_HAND_OFFSET, 21),
-    ]:
-        if landmarks is not None:
-            row[offset:offset + n] = [[p.x, p.y, p.z] for p in landmarks.landmark[:n]]
-    return row
-
-
-def capture_attempt(camera: int, seconds: float) -> tuple[np.ndarray, float]:
+def capture_attempt(camera: int, seconds: float, model) -> tuple[np.ndarray, float]:
     """3-2-1 countdown, then record ~seconds of landmarks. Returns (holistic, measured fps)."""
     import cv2                      # [live] extra — imported lazily so --smoke needs neither
-    import mediapipe as mp
 
     cap = cv2.VideoCapture(camera)
     if not cap.isOpened():
         raise SystemExit(f"cannot open camera {camera}")
+    landmarker = create_landmarker(model)
     try:
         for count in ("3", "2", "1"):
             deadline = time.monotonic() + 1.0
@@ -68,19 +55,20 @@ def capture_attempt(camera: int, seconds: float) -> tuple[np.ndarray, float]:
                 cv2.waitKey(1)
 
         rows, t0 = [], time.monotonic()
-        with mp.solutions.holistic.Holistic() as holistic:
-            while time.monotonic() - t0 < seconds:
-                ok, frame = cap.read()
-                if not ok:
-                    break
-                results = holistic.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                rows.append(holistic_row(results))
-                cv2.putText(frame, "REC", (60, 120), cv2.FONT_HERSHEY_SIMPLEX,
-                            2, (0, 0, 255), 4)
-                cv2.imshow("signisa", frame)
-                cv2.waitKey(1)
+        while time.monotonic() - t0 < seconds:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            result = detect_frame(landmarker, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
+                                  int((time.monotonic() - t0) * 1000))
+            rows.append(holistic_row(result))
+            cv2.putText(frame, "REC", (60, 120), cv2.FONT_HERSHEY_SIMPLEX,
+                        2, (0, 0, 255), 4)
+            cv2.imshow("signisa", frame)
+            cv2.waitKey(1)
         elapsed = time.monotonic() - t0
     finally:
+        landmarker.close()
         cap.release()
         cv2.destroyAllWindows()
     if len(rows) < 2:
@@ -100,6 +88,8 @@ def main() -> None:
     ap.add_argument("--user-level", type=float, default=0.0)
     ap.add_argument("--seconds", type=float, default=2.5)
     ap.add_argument("--camera", type=int, default=0)
+    ap.add_argument("--model", type=Path, default=DEFAULT_MODEL,
+                    help="HolisticLandmarker .task bundle (camera path only)")
     ap.add_argument("--smoke", type=Path, metavar="PARQUET",
                     help="headless: run the post-capture path on a stored sample")
     args = ap.parse_args()
@@ -110,7 +100,7 @@ def main() -> None:
     if args.smoke:
         holistic, fps = load_holistic(args.smoke), 30.0
     else:
-        holistic, fps = capture_attempt(args.camera, args.seconds)
+        holistic, fps = capture_attempt(args.camera, args.seconds, args.model)
 
     result = preprocess(holistic, fps=fps,
                         left_dominant=hand_dominance(holistic, fps) == "left",

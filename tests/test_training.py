@@ -8,6 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 torch = pytest.importorskip("torch")
@@ -182,13 +183,14 @@ def test_end_to_end_mini_run(tensors_dir, tmp_path):
     assert 0.0 <= metrics["tar_at_far"] <= 1.0
     assert 0.0 <= metrics["top1_closed_set"] <= 1.0
 
-    assert set(metrics["per_participant"]) == set(val_pids)
+    val_strs = {str(p) for p in val_pids}  # eval normalizes signer ids to str (ac_ merge)
+    assert set(metrics["per_participant"]) == val_strs
     for v in metrics["per_participant"].values():
         assert v["mirrored_rate"] in (0.0, 1.0)  # vote is per participant, so uniform
     trials = metrics["trials"]
     assert list(trials.columns) == ["sequence_id", "participant", "attempt",
-                                    "target", "score", "genuine"]
-    assert set(trials.participant) <= set(val_pids)
+                                    "target", "score", "genuine", "domain"]
+    assert set(trials.participant) <= val_strs
     # every genuine trial has exactly one row per val curriculum attempt
     assert trials[trials.genuine].sequence_id.is_unique
 
@@ -201,6 +203,121 @@ def test_end_to_end_mini_run(tensors_dir, tmp_path):
     # out-of-curriculum rivals get centroids too, so the decision policy can margin-check them
     assert "confusable_centroids" in trained
     assert not set(trained["confusable_centroids"]) & set(trained["signs"])
+
+
+@pytest.fixture(scope="session")
+def merged_dir(tmp_path_factory):
+    """Kaggle samples + 2 synthetic ASL Citizen signers x 2 clips, one shard set."""
+    from test_pipeline import synthetic_holistic
+
+    tmp = tmp_path_factory.mktemp("citizen_merge")
+    npz_dir = tmp / "extracted"
+    npz_dir.mkdir()
+    labels = json.load((ROOT / "data/meta/training_labels.json").open())
+    mom, cat = labels["sign_to_class"]["mom"], labels["sign_to_class"]["cat"]
+    rows = []
+    for pid, label, name in [(101, mom, "mom"), (101, cat, "cat"),
+                             (102, mom, "mom"), (102, cat, "cat")]:
+        video = f"{pid}-{name.upper()}-{len(rows)}.mp4"
+        np.savez_compressed(npz_dir / f"{Path(video).stem}.npz",
+                            holistic=synthetic_holistic(24).astype(np.float16),
+                            fps=24.0, n_frames=24, n_detected_frames=24,
+                            mediapipe_version="stub")
+        rows.append({"videofile": video, "gloss": name.upper(), "asllexcode": name,
+                     "participant_id": f"ac_{pid}", "split": "train",
+                     "canonical_label_id": label, "canonical_label": name})
+    rows.append({"videofile": "999-GONE.mp4", "gloss": "MOM", "asllexcode": "mother",
+                 "participant_id": "ac_999", "split": "train",
+                 "canonical_label_id": mom, "canonical_label": "mom"})  # npz missing
+    mapping = tmp / "mapping.csv"
+    pd.DataFrame(rows).to_csv(mapping, index=False)
+
+    out = tmp / "tensors"
+    subprocess.run(
+        [sys.executable, "scripts/build_training_tensors.py",
+         "--landmarks-dir", str(SAMPLES), "--out-dir", str(out),
+         "--citizen-npz-dir", str(npz_dir), "--citizen-mapping", str(mapping)],
+        check=True, cwd=ROOT)
+    return out
+
+
+def test_citizen_build_rejects_stale_mapping_and_empty_npz_dir(merged_dir, tmp_path):
+    src = merged_dir.parent
+    good_mapping = pd.read_csv(src / "mapping.csv")
+
+    stale = good_mapping.copy()
+    stale["canonical_label_id"] += 1  # ids from an older labels file
+    stale.to_csv(tmp_path / "stale.csv", index=False)
+    for mapping, npz_dir, msg in [
+            (tmp_path / "stale.csv", src / "extracted", "disagree with --labels"),
+            (src / "mapping.csv", tmp_path / "empty", "is not a directory")]:
+        proc = subprocess.run(
+            [sys.executable, "scripts/build_training_tensors.py",
+             "--landmarks-dir", str(SAMPLES), "--out-dir", str(tmp_path / "out"),
+             "--citizen-npz-dir", str(npz_dir), "--citizen-mapping", str(mapping)],
+            capture_output=True, text=True, cwd=ROOT)
+        assert proc.returncode != 0 and msg in proc.stderr
+
+
+def test_merged_index_domains_and_filtering(merged_dir):
+    index = pd.read_csv(merged_dir / "index.csv")
+    assert index.domain.value_counts().to_dict() == {"popsign": 30, "asl_citizen": 4}
+    citizen = index[index.domain == "asl_citizen"]
+    assert set(citizen.participant_id) == {"ac_101", "ac_102"}  # missing npz row dropped
+    assert citizen.groupby("participant_id").mirrored.nunique().eq(1).all()  # per-signer vote
+
+    ds = ShardDataset(merged_dir)
+    assert len(ds) == 34
+    tensor, side, label = ds[len(ds) - 1]  # a citizen row: same ragged contract
+    assert tensor.shape == (ds.lengths[-1], 65, 10) and side.shape == (2,)
+
+    for pids, expected in [(["ac_101"], 2), ({"ac_101", "ac_102"}, 4),
+                           ([index.participant_id.iloc[0]], None)]:
+        subset = ShardDataset(merged_dir, participants=pids)
+        assert len(subset) == (expected or len(subset)) and len(subset) > 0
+    # int and str spellings of a PopSign id select the same rows
+    pop = index[index.domain == "popsign"].participant_id.iloc[0]
+    assert len(ShardDataset(merged_dir, participants=[int(pop)])) == \
+        len(ShardDataset(merged_dir, participants=[str(pop)]))
+
+
+def test_merged_eval_reports_per_domain(merged_dir, tmp_path):
+    from signisa.eval import default_val_participants, held_out_participants
+
+    cfg = small_config("ce", n_val_participants=2, n_val_citizen_signers=1)
+    model = SignModel(cfg).eval()  # untrained: the eval plumbing is what's under test
+    metrics = run_evaluation(model, merged_dir, ROOT / "data/meta/curriculum_db.json",
+                             ROOT / "data/meta/training_labels.json", cfg, tmp_path)
+
+    assert set(metrics["per_domain"]) == {"popsign", "asl_citizen"}
+    for v in metrics["per_domain"].values():
+        assert v["n_genuine"] > 0 and v["n_signers"] > 0
+    report = (tmp_path / "metrics_report.md").read_text()
+    assert "## Per-domain" in report and "| asl_citizen |" in report
+
+    # the PopSign selection is EXACTLY the historic one — numbers stay comparable
+    index = pd.read_csv(merged_dir / "index.csv")
+    pop_pids = index[index.domain == "popsign"].participant_id
+    expected_pop = held_out_participants(pop_pids, 2, cfg.seed)
+    chosen = default_val_participants(index, cfg)
+    assert chosen[:2] == expected_pop
+    assert sum(str(p).startswith("ac_") for p in chosen) == 1  # 1 of 2 citizen signers held out
+    assert set(metrics["val_participants"]) == {str(p) for p in chosen}
+
+
+def test_held_out_participants_matches_historic_selection():
+    from signisa.eval import held_out_participants
+
+    def historic(participant_ids, n, seed):  # the pre-domain implementation, verbatim
+        pids = sorted(set(int(p) for p in participant_ids))
+        rng = np.random.default_rng(seed)
+        return sorted(int(p) for p in rng.choice(pids, size=n, replace=False))
+
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        pids = rng.choice(30000, size=rng.integers(5, 25), replace=False).tolist()
+        assert held_out_participants(pids, 4, 42) == historic(pids, 4, 42)
+        assert held_out_participants([str(p) for p in pids], 4, 42) == historic(pids, 4, 42)
 
 
 def test_stale_shard_schema_is_rejected(tensors_dir, tmp_path):
