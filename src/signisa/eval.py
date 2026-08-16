@@ -14,9 +14,11 @@ import numpy as np
 import pandas as pd
 import torch
 
+from . import SHARD_SCHEMA
 from .config import Config
 from .data import ShardDataset
 from .models import SignModel
+from .train import make_loader
 
 
 def held_out_participants(participant_ids, n: int, seed: int) -> list[int]:
@@ -27,10 +29,17 @@ def held_out_participants(participant_ids, n: int, seed: int) -> list[int]:
 
 @torch.no_grad()
 def compute_embeddings(model: SignModel, dataset: ShardDataset, device: str,
-                       batch_size: int) -> np.ndarray:
+                       cfg: Config) -> np.ndarray:
+    """Embeddings in DATASET order — the loader batches by length, so undo its permutation."""
     model.eval()
-    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    return np.concatenate([model.embedder(x.to(device)).cpu().numpy() for x, _ in loader])
+    loader = make_loader(dataset, cfg, shuffle=False)
+    embeddings = np.concatenate(
+        [model.embedder(x.to(device), mask.to(device), side.to(device)).cpu().numpy()
+         for x, mask, side, _ in loader])
+    order = np.concatenate([np.asarray(batch) for batch in loader.batch_sampler])
+    restored = np.empty_like(embeddings)
+    restored[order] = embeddings
+    return restored
 
 
 def build_centroids(embeddings: np.ndarray, label_ids: np.ndarray) -> dict[int, np.ndarray]:
@@ -99,8 +108,8 @@ def run_evaluation(model: SignModel, tensors_dir, curriculum_db_path, labels_pat
     val_ds = ShardDataset(tensors_dir, participants=val_participants)
     assert train_ds.landmark_version == cfg.landmark_version, (
         f"tensors are {train_ds.landmark_version} but the model expects {cfg.landmark_version}")
-    train_emb = compute_embeddings(model, train_ds, device, cfg.batch_size)
-    val_emb = compute_embeddings(model, val_ds, device, cfg.batch_size)
+    train_emb = compute_embeddings(model, train_ds, device, cfg)
+    val_emb = compute_embeddings(model, val_ds, device, cfg)
     centroids = build_centroids(train_emb, train_ds.index.canonical_label_id.to_numpy())
 
     # closed-set top-1 over all classes (sanity anchor)
@@ -205,7 +214,11 @@ def _write_report(m: dict, path: Path, cfg: Config) -> None:
     eers = [v["eer"] for v in m["per_sign"].values() if v["eer"] is not None]
     lines = [
         "# Verification metrics (signer-independent)\n",
-        f"- landmark_version {m['landmark_version']}, torch {m['torch_version']}",
+        f"- landmark_version {m['landmark_version']}, shard schema v{SHARD_SCHEMA} "
+        f"(ragged native-length), torch {m['torch_version']}",
+        f"- Train augmentation: flip p={cfg.augment.flip_p}, "
+        f"crop {cfg.augment.crop_min_frac:.0%}-100%, "
+        f"speed {cfg.augment.speed_min:g}-{cfg.augment.speed_max:g}x",
         f"- Val participants: {m['val_participants']} ({m['n_val']} sequences; "
         f"{m['n_train']} train sequences)",
         f"- **TAR@FAR={cfg.far_target:.0%}: {m['tar_at_far']:.1%}** "

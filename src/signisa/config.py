@@ -16,13 +16,19 @@ class AugmentConfig:
     translation: float = 0.02
     node_dropout_p: float = 0.05
     noise_sigma: float = 0.005
+    # native-length levers (Phase 1c); side features follow the time warps
+    crop_min_frac: float = 0.8       # random temporal crop keeps crop_min_frac..1.0 of frames
+    speed_min: float = 0.8           # speed-scale: performing the sign s x faster -> T/s frames
+    speed_max: float = 1.2
+    # horizontal flip in canonical space via MIRROR_PERM: symmetrizes training only,
+    # inference still runs right-dominant, so the locked "no naive flip" rule holds
+    flip_p: float = 0.5
 
 
 @dataclass
 class Config:
     # model (Kaggle 1st-place cnn_transformer pattern, ~2M param budget; docs/research/task3a)
     n_classes: int = 246
-    t_frames: int = 160
     landmark_version: str = "v1"
     n_nodes: int = 65  # derived from landmark_version in __post_init__
     n_channels: int = 10
@@ -38,12 +44,13 @@ class Config:
     arcface_s: float = 30.0
     arcface_m: float = 0.3
     # training
-    epochs: int = 60
+    epochs: int = 300
     batch_size: int = 256
     lr: float = 1e-3
     weight_decay: float = 1e-4
     warmup_epochs: int = 5
-    patience: int = 10               # early stopping on val top-1
+    patience: int = 30               # early stopping on val top-1
+    session_budget_h: float = 11.0   # warn if projected training time exceeds a Kaggle session
     amp: bool = True
     seed: int = 42
     num_workers: int = 2

@@ -5,6 +5,46 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 9 (2026-08-16, Phase 1c — ragged tensors + bundled recipe):
+- **Lips (v2) killed by the pre-registered criterion**: 49.5% top-1 (-0.1 vs v1),
+  TAR 73.0%. Five single levers now dead and the Kaggle winners hit ~0.82 at the
+  same parameter scale, so the diagnosis phase is over: Phase 1c bundles the
+  untested recipe pieces in ONE run and only ablates if it works.
+- **Ragged variable-length storage (shard schema v2).** build_training_tensors no
+  longer resamples to T=160; sequences keep their native length, capped at
+  `pipeline.MAX_FRAMES = 384` (over-long clips resample DOWN — truncating a sign
+  makes it a different sign). Shards store `frames` (all sequences concatenated) +
+  `lengths` + `schema_version`; `signisa.data._load_shards` rebuilds slice offsets
+  and asserts the schema (a pre-v2 shard raises "shard schema 1, expected 2").
+  index.csv gains `n_frames`; on the 30 local samples fixed-160 storage would have
+  been **3.8x larger** (frames min 6 / median 20 / max 223).
+- **Batching**: `pad_collate` pads to the batch max and emits a real-frame mask;
+  `train.LengthBucketSampler` sorts by length inside a shuffled 50-batch pool so
+  padding (and the BatchNorm skew it causes) stays small. `eval.compute_embeddings`
+  undoes the sampler permutation so embeddings stay in dataset order.
+- **Model is mask-aware end to end**: attention gets `key_padding_mask`, pooling
+  weights by confidence x mask, and padded frames are re-zeroed after the stem and
+  after every conv block — the stem's bias made pads non-zero, and the k=17 depthwise
+  convs read 8 frames past a sequence's end, so a short clip's tail depended on
+  whatever else shared its batch (caught by the pad-parity test, ~1e-3 drift).
+- **Side features reach the model**: `data.side_features` = (duration_s,
+  log1p(peak_speed)) -> BatchNorm1d(2) -> concatenated before the final embedding
+  Linear (`head` is now `dim + 2 -> embed_dim`). The rhythm signal resampling
+  destroyed now arrives both ways (native length AND scalars).
+- **New augmentations** (all in `augmented`, which now takes the stored (T,N,4)
+  array + side and returns both): random temporal crop (80-100%), speed-scale
+  0.8-1.2x, and random horizontal flip p=0.5 via MIRROR_PERM. Duration/peak-speed
+  follow the time warps. The flip is train-only symmetrization — inference still
+  runs canonical right-dominant, so the locked "no naive flip" rule (about
+  inference-time handedness) is intact. All config-flagged; the report prints them.
+- **Schedule**: EPOCHS=300, PATIENCE=30, ArcFace s=30 m=0.3 unchanged. After 3
+  epochs `train_model` prints measured s/epoch + projected hours and warns past
+  `cfg.session_budget_h` (11 h) with the epoch count that would fit.
+- `preprocess.resampled` is now vectorized (was a per-column np.interp loop —
+  400 calls per training sample once speed-scale runs in the DataLoader).
+- **Success: top-1 >= 60% OR TAR@FAR5 >= 80%. Kill: top-1 < 55%** -> the recipe
+  hypothesis dies and ASL Citizen (signer diversity) becomes the next phase.
+
 Session 8 (2026-08-14, landmark v2 + live loop):
 - **200-epoch ArcFace converged: 50.3% top-1 at epoch 166, flat tail, TAR
   73.4% — under-training eliminated as a cause.** Remaining levers: input
@@ -309,6 +349,15 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
   is the top rival centroid — it only literally "beat" the genuine when
   margin < 0.
 - Real sequences can be as short as 6 frames (~0.2 s) and as long as 223.
+- Shards from before schema v2 are unreadable by design (the `tensors` key is gone,
+  and the schema assert fires first) — rerun kaggle_prep, don't patch old outputs.
+- The BatchNorms still see padded frames; LengthBucketSampler is what keeps that
+  fraction small. If pad share ever grows (much longer clips, tiny batches),
+  masked BatchNorm is the upgrade, not more bucketing.
+- `SHARD_SCHEMA` lives in `signisa/__init__.py`, not `signisa.data`: the tensor-build
+  script must stay importable without torch (it's the `[train]` extra).
+- Checkpoints from before session 9 are unloadable — `embedder.head` grew by the two
+  side-feature inputs (dim+2) and `side_norm` is new. Retrain, don't port.
 
 ## Missing / absent from expected inputs
 

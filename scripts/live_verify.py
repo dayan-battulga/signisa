@@ -17,11 +17,10 @@ import time
 from pathlib import Path
 
 import numpy as np
-import torch
 
 from signisa.config import Config
 from signisa.decision import DecisionConfig, verify_attempt
-from signisa.models import SignModel, load_checkpoint
+from signisa.models import SignModel, embedding_of, load_checkpoint
 from signisa.preprocess.dominance import hand_dominance
 from signisa.preprocess.kaggle import load_holistic
 from signisa.preprocess.landmarks import (
@@ -116,8 +115,7 @@ def main() -> None:
     result = preprocess(holistic, fps=fps,
                         left_dominant=hand_dominance(holistic, fps) == "left",
                         version=model.cfg.landmark_version)
-    with torch.no_grad():
-        embedding = model.embedder(torch.from_numpy(result.tensor)[None])[0].numpy()
+    embedding = embedding_of(model, result)
 
     db = json.load(args.db.open())
     # a db without the field is legacy v1-era; embeddings are 512-d either way,

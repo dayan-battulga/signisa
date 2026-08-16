@@ -4,6 +4,7 @@ augmentations, overfit sanity (both losses), and the end-to-end eval path."""
 import json
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -12,11 +13,12 @@ import pytest
 torch = pytest.importorskip("torch")
 from torch.utils.data import Subset
 
+from signisa import SHARD_SCHEMA
 from signisa.config import AugmentConfig, Config
-from signisa.data import ShardDataset, augmented
+from signisa.data import ShardDataset, augmented, pad_collate, side_features
 from signisa.eval import run_evaluation
 from signisa.models import SignModel, parameter_count
-from signisa.train import top1_accuracy, train_model
+from signisa.train import make_loader, top1_accuracy, train_model
 
 ROOT = Path(__file__).parent.parent
 SAMPLES = ROOT / "data" / "samples"
@@ -42,68 +44,123 @@ def small_config(loss: str, **overrides) -> Config:
     return Config(**defaults)
 
 
-def test_shards_store_4_channels_and_dataset_reconstructs(tensors_dir):
+def test_ragged_shards_and_dataset_reconstructs(tensors_dir):
     from signisa.preprocess.kaggle import load_holistic
     from signisa.preprocess.pipeline import preprocess
 
     shard = np.load(tensors_dir / "shard_0000.npz")
-    assert shard["tensors"].shape[1:] == (160, 65, 4)
-    assert shard["tensors"].dtype == np.float16
+    assert int(shard["schema_version"]) == SHARD_SCHEMA
+    assert shard["frames"].shape[1:] == (65, 4) and shard["frames"].dtype == np.float16
+    assert shard["lengths"].sum() == len(shard["frames"])
+    assert len(set(shard["lengths"].tolist())) > 1, "samples should not all be the same length"
 
     ds = ShardDataset(tensors_dir)
-    tensor, label = ds[0]
-    assert tensor.shape == (160, 65, 10) and tensor.dtype == torch.float32
-    assert isinstance(label, int)
-
+    tensor, side, label = ds[0]
     row = ds.index.iloc[0]
     full = preprocess(load_holistic(SAMPLES / f"{row.sequence_id}.parquet"),
                       left_dominant=bool(row.mirrored)).tensor
+    assert tensor.shape == full.shape and tensor.dtype == torch.float32
+    assert isinstance(label, int)
     np.testing.assert_allclose(tensor.numpy(), full, atol=1e-2)  # float16 storage rounding
+    np.testing.assert_allclose(side.numpy(), side_features(row.duration_s, row.peak_speed))
 
     # canonical-space flip == mirroring the raw sequence before preprocess — BIT-exact
     # on the float16 path (float16 rounding is sign-symmetric, so it commutes with the flip)
     from signisa.data import mirrored_stored
-    flipped = mirrored_stored(ds.tensors[int(row.row)])
+    flipped = mirrored_stored(ds.stored(0))
     other = preprocess(load_holistic(SAMPLES / f"{row.sequence_id}.parquet"),
                        left_dominant=not bool(row.mirrored)).tensor[..., [0, 1, 2, 9]]
     assert np.array_equal(flipped, other.astype(np.float16))
 
 
-def test_augmentations_shapes_and_identity():
+def stored_sequence(t: int = 100, n: int = 65) -> np.ndarray:
     rng = np.random.default_rng(3)
-    coords = rng.normal(size=(160, 65, 3))
-    confidence = np.ones((160, 65, 1))
-    confidence[:, 5] = 0.0
-    coords[:, 5] = 0.0
+    stored = np.concatenate([rng.normal(size=(t, n, 3)), np.ones((t, n, 1))], axis=2)
+    stored[:, 5] = 0.0  # a node the tracker never found
+    return stored.astype(np.float32)
 
-    off = AugmentConfig(mask_total_frac=0.0, rotation_deg=0.0, scale=0.0,
-                        translation=0.0, node_dropout_p=0.0, noise_sigma=0.0)
-    c2, f2 = augmented(coords.copy(), confidence.copy(), off, rng)
-    np.testing.assert_allclose(c2, coords)
-    np.testing.assert_allclose(f2, confidence)
 
-    c3, f3 = augmented(coords.copy(), confidence.copy(), AugmentConfig(), rng)
-    assert c3.shape == coords.shape and f3.shape == confidence.shape
-    assert (c3[f3[..., 0] == 0.0] == 0.0).all()  # masked frames/nodes fully zeroed
-    # temporal mask budget: fully-masked frames never exceed mask_total_frac
+def test_augmentation_identity_and_budgets():
+    rng = np.random.default_rng(3)
+    stored = stored_sequence()
+    side = side_features(3.0, 4.0)
+
+    off = AugmentConfig(mask_total_frac=0.0, rotation_deg=0.0, scale=0.0, translation=0.0,
+                        node_dropout_p=0.0, noise_sigma=0.0, crop_min_frac=1.0,
+                        speed_min=1.0, speed_max=1.0)
+    quiet, quiet_side = augmented(stored.copy(), side, off, rng)
+    np.testing.assert_allclose(quiet, stored, atol=1e-6)
+    np.testing.assert_allclose(quiet_side, side, rtol=1e-6)
+
     for _ in range(200):
-        _, f = augmented(coords.copy(), np.ones((160, 65, 1)),
-                         AugmentConfig(node_dropout_p=0.0), rng)
-        assert (f[..., 0] == 0.0).all(axis=1).sum() <= int(0.4 * 160)
-    # never a flip: the mean x sign of a strongly right-biased cloud can't invert at +-5 deg
-    biased = np.abs(coords)
-    c4, _ = augmented(biased.copy(), np.ones((160, 65, 1)), AugmentConfig(), rng)
-    assert c4[..., 0].sum() > 0
+        out, out_side = augmented(stored.copy(), side, AugmentConfig(node_dropout_p=0.0), rng)
+        t = out.shape[0]
+        assert 0.8 * 0.8 * 100 - 2 <= t <= 100 / 0.8 + 1        # speed-scale x crop bounds
+        assert (out[..., 3] == 0.0).all(axis=1).sum() <= int(0.4 * t)  # temporal-mask budget
+        assert (out[out[..., 3] == 0.0][..., :3] == 0.0).all()  # masked frames fully zeroed
+        # duration follows the time warp; peak speed stays positive and finite
+        assert 0.6 < out_side[0] < 4.0 and np.isfinite(out_side[1]) and out_side[1] > 0
+
+    # augmentation alone never flips: +-5 deg can't invert a strongly right-biased cloud
+    biased = stored.copy()
+    biased[..., :3] = np.abs(biased[..., :3])
+    flipless, _ = augmented(biased, side, AugmentConfig(), rng)
+    assert flipless[..., 0].sum() > 0
+
+
+def test_flip_augmentation_mirrors_and_is_off_when_disabled(tensors_dir):
+    from signisa.data import mirrored_stored
+
+    plain = ShardDataset(tensors_dir)
+    quiet = AugmentConfig(mask_total_frac=0.0, rotation_deg=0.0, scale=0.0, translation=0.0,
+                          node_dropout_p=0.0, noise_sigma=0.0, crop_min_frac=1.0,
+                          speed_min=1.0, speed_max=1.0, flip_p=1.0)
+    always = ShardDataset(tensors_dir, augment=True, aug_config=quiet)
+    never = ShardDataset(tensors_dir, augment=True, aug_config=replace(quiet, flip_p=0.0))
+    expected = mirrored_stored(plain.stored(0).astype(np.float32))
+    np.testing.assert_allclose(always[0][0].numpy()[..., :3], expected[..., :3], atol=1e-5)
+    np.testing.assert_allclose(never[0][0].numpy(), plain[0][0].numpy(), atol=1e-5)
+
+
+def test_pad_collate_masks_real_frames(tensors_dir):
+    ds = ShardDataset(tensors_dir)
+    batch = [ds[i] for i in range(4)]
+    x, mask, side, labels = pad_collate(batch)
+    lengths = [sample[0].shape[0] for sample in batch]
+    assert x.shape == (4, max(lengths), 65, 10)
+    assert mask.shape == (4, max(lengths)) and side.shape == (4, 2) and labels.shape == (4,)
+    for i, n in enumerate(lengths):
+        assert mask[i].sum() == n
+        assert torch.equal(x[i, :n], batch[i][0])
+        assert (x[i, n:] == 0).all()
+
+    # padding must not move the embedding: pooling and attention are mask-aware
+    model = SignModel(small_config("ce")).eval()
+    with torch.no_grad():
+        batched = model.embedder(x, mask, side)
+        alone = torch.cat([model.embedder(*pad_collate([b])[:3]) for b in batch])
+    torch.testing.assert_close(batched, alone, atol=1e-4, rtol=1e-4)
+
+
+def test_length_bucket_sampler_covers_every_index(tensors_dir):
+    ds = ShardDataset(tensors_dir)
+    cfg = small_config("ce", batch_size=4)
+    for shuffle in (True, False):
+        batches = list(make_loader(ds, cfg, shuffle).batch_sampler)
+        assert sorted(i for b in batches for i in b) == list(range(len(ds)))
+        assert all(len(b) <= 4 for b in batches)
+    ordered = list(make_loader(ds, cfg, False).batch_sampler)
+    assert np.concatenate(ordered).tolist() == sorted(
+        range(len(ds)), key=lambda i: (ds.lengths[i], i))  # sorted by length, stable
 
 
 @pytest.mark.parametrize("loss", ["ce", "arcface"])
 def test_overfit_ten_sequences(tensors_dir, loss):
     ds = Subset(ShardDataset(tensors_dir), range(10))
-    cfg = small_config(loss)
-    model, history = train_model(cfg, ds, ds, max_steps=50)
+    cfg = small_config(loss, epochs=200)
+    model, history = train_model(cfg, ds, ds, max_steps=200)
     assert history["train_loss"][-1] < history["train_loss"][0]
-    loader = torch.utils.data.DataLoader(ds, batch_size=10)
-    assert top1_accuracy(model, loader, "cpu") == 1.0
+    assert top1_accuracy(model, make_loader(ds, cfg, shuffle=False), "cpu") == 1.0
 
 
 def test_end_to_end_mini_run(tensors_dir, tmp_path):
@@ -146,6 +203,34 @@ def test_end_to_end_mini_run(tensors_dir, tmp_path):
     assert not set(trained["confusable_centroids"]) & set(trained["signs"])
 
 
+def test_stale_shard_schema_is_rejected(tensors_dir, tmp_path):
+    import shutil
+
+    shutil.copy(tensors_dir / "index.csv", tmp_path / "index.csv")
+    old = np.load(tensors_dir / "shard_0000.npz")
+    np.savez_compressed(tmp_path / "shard_0000.npz", frames=old["frames"],
+                        lengths=old["lengths"], sequence_id=old["sequence_id"],
+                        landmark_version=old["landmark_version"])  # no schema_version = v1
+    with pytest.raises(AssertionError, match="shard schema 1"):
+        ShardDataset(tmp_path)
+
+
+def test_embedding_of_matches_the_batched_path(tensors_dir):
+    """The inference CLIs build mask/side by hand — they must agree with pad_collate."""
+    from signisa.models import embedding_of
+    from signisa.preprocess.kaggle import load_holistic
+    from signisa.preprocess.pipeline import preprocess
+
+    ds = ShardDataset(tensors_dir)
+    row = ds.index.iloc[0]
+    model = SignModel(small_config("ce")).eval()
+    pre = preprocess(load_holistic(SAMPLES / f"{row.sequence_id}.parquet"),
+                     left_dominant=bool(row.mirrored))
+    with torch.no_grad():  # index 1 is a different length, so entry 0 is genuinely padded
+        batched = model.embedder(*pad_collate([ds[0], ds[1]])[:3])[0].numpy()
+    np.testing.assert_allclose(embedding_of(model, pre), batched, atol=1e-2)
+
+
 def test_parameter_budget():
     assert parameter_count(SignModel(Config())) < 2_000_000
 
@@ -162,16 +247,16 @@ def tensors_dir_v2(tmp_path_factory):
 
 def test_v2_tensors_dataset_and_model(tensors_dir_v2):
     shard = np.load(tensors_dir_v2 / "shard_0000.npz")
-    assert shard["tensors"].shape[1:] == (160, 99, 4)
+    assert shard["frames"].shape[1:] == (99, 4)
     assert str(shard["landmark_version"]) == "v2"
 
     ds = ShardDataset(tensors_dir_v2)
     assert ds.landmark_version == "v2"
-    tensor, _ = ds[0]
-    assert tensor.shape == (160, 99, 10)
+    tensor, side, _ = ds[0]
+    assert tensor.shape == (ds.lengths[0], 99, 10) and side.shape == (2,)
 
     cfg = small_config("ce", landmark_version="v2")
-    _, logits = SignModel(cfg)(tensor[None])
+    _, logits = SignModel(cfg).eval()(*pad_collate([ds[0]])[:3])
     assert logits.shape == (1, 246)
 
     # v1 model must never silently consume v2 tensors

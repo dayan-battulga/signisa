@@ -14,11 +14,9 @@ import argparse
 import json
 from pathlib import Path
 
-import torch
-
 from signisa.config import Config
 from signisa.decision import DecisionConfig, verify_attempt
-from signisa.models import SignModel, load_checkpoint
+from signisa.models import SignModel, embedding_of, load_checkpoint
 from signisa.preprocess.dominance import hand_dominance
 from signisa.preprocess.kaggle import load_holistic
 from signisa.preprocess.pipeline import preprocess
@@ -42,8 +40,7 @@ def main() -> None:
     holistic = load_holistic(args.parquet)
     result = preprocess(holistic, left_dominant=hand_dominance(holistic) == "left",
                         version=model.cfg.landmark_version)
-    with torch.no_grad():
-        embedding = model.embedder(torch.from_numpy(result.tensor)[None])[0].numpy()
+    embedding = embedding_of(model, result)
 
     db = json.load(args.db.open())
     # a db without the field is legacy v1-era; embeddings are 512-d either way,

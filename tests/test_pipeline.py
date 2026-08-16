@@ -8,7 +8,7 @@ from signisa.preprocess.landmarks import (
     N_HOLISTIC,
     N_NODES,
 )
-from signisa.preprocess.pipeline import T_OUT, mirrored, preprocess
+from signisa.preprocess.pipeline import MAX_FRAMES, mirrored, preprocess, resampled
 
 RNG = np.random.default_rng(7)
 
@@ -24,11 +24,28 @@ def synthetic_holistic(t: int = 48) -> np.ndarray:
     return holistic
 
 
-def test_output_shape_dtype_and_no_nans():
-    result = preprocess(synthetic_holistic())
-    assert result.tensor.shape == (T_OUT, N_NODES, 10)
+def test_output_keeps_native_length():
+    result = preprocess(synthetic_holistic(48))
+    assert result.tensor.shape == (48, N_NODES, 10)  # native length, no resampling
     assert result.tensor.dtype == np.float32
     assert np.isfinite(result.tensor).all()
+    assert result.duration_s == pytest.approx(48 / 30.0)
+
+
+def test_overlong_sequences_are_capped_not_truncated():
+    long_result = preprocess(synthetic_holistic(MAX_FRAMES + 200))
+    assert long_result.tensor.shape[0] == MAX_FRAMES
+    # duration is the RAW attempt length, so the model still sees how long it really was
+    assert long_result.duration_s == pytest.approx((MAX_FRAMES + 200) / 30.0)
+
+
+def test_resampled_matches_per_column_interp():
+    values = RNG.normal(size=(17, 4, 3))
+    src, dst = np.linspace(0, 1, 17), np.linspace(0, 1, 40)
+    expected = np.stack([np.interp(dst, src, values.reshape(17, -1)[:, i])
+                         for i in range(12)], axis=1).reshape(40, 4, 3)
+    np.testing.assert_allclose(resampled(values, 40), expected, atol=1e-12)
+    np.testing.assert_allclose(resampled(values, 17), values, atol=1e-12)
 
 
 def test_translation_invariance():
@@ -112,8 +129,8 @@ def test_landmark_sets_v1_v2():
 
 
 def test_v2_preprocess_shape():
-    result = preprocess(synthetic_holistic(), version="v2")
-    assert result.tensor.shape == (T_OUT, 99, 10)
+    result = preprocess(synthetic_holistic(48), version="v2")
+    assert result.tensor.shape == (48, 99, 10)
     assert np.isfinite(result.tensor).all()
 
 

@@ -1,14 +1,18 @@
 """cnn_transformer backbone (~2M params; Kaggle 1st-place pattern, docs/research/task3a)
-+ CE / ArcFace heads. Input (B, 160, 65, 10) -> 512-d L2-normalized embedding.
++ CE / ArcFace heads. Input (B, T, 65, 10) + real-frame mask + (B, 2) side features
+-> 512-d L2-normalized embedding. Batches are padded to the batch maximum, so every
+sequence-consuming step is mask-aware.
 """
 
 import math
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
 from ..config import Config
+from ..data import side_features
 
 
 class DropPath(nn.Module):
@@ -58,13 +62,19 @@ class BNTransformerLayer(nn.Module):
     def _bn(norm: nn.BatchNorm1d, x: torch.Tensor) -> torch.Tensor:  # (B, T, C)
         return norm(x.transpose(1, 2)).transpose(1, 2)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # (B, T, C)
-        x = self._bn(self.norm1, x + self.drop_path(self.attn(x, x, x, need_weights=False)[0]))
+    def forward(self, x: torch.Tensor, pad: torch.Tensor) -> torch.Tensor:  # (B, T, C), (B, T)
+        attended = self.attn(x, x, x, key_padding_mask=pad, need_weights=False)[0]
+        x = self._bn(self.norm1, x + self.drop_path(attended))
         return self._bn(self.norm2, x + self.drop_path(self.ffn(x)))
 
 
 class Embedder(nn.Module):
-    """(B, T, 65, 10) -> (B, embed_dim), L2-normalized."""
+    """(B, T, 65, 10) + (B, T) real-frame mask + (B, 2) side -> (B, embed_dim), L2-normalized.
+
+    ponytail: the BatchNorms still see padded frames. Length-bucketed batching
+    (signisa.train.LengthBucketSampler) keeps the padding fraction small; masked
+    BatchNorm is the upgrade if the pad fraction ever gets large.
+    """
 
     def __init__(self, cfg: Config):
         super().__init__()
@@ -74,20 +84,25 @@ class Embedder(nn.Module):
         self.transformer = nn.ModuleList(
             BNTransformerLayer(cfg.dim, cfg.n_heads, cfg.ffn_mult, cfg.drop_path)
             for _ in range(cfg.n_transformer_layers))
-        self.head = nn.Linear(cfg.dim, cfg.embed_dim)
+        self.side_norm = nn.BatchNorm1d(2)  # duration (s) and log peak speed live on
+        self.head = nn.Linear(cfg.dim + 2, cfg.embed_dim)  # different scales from the pooled dims
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        weight = x[..., 9].mean(dim=2)                      # (B, T) mean node confidence
-        h = self.stem(x.flatten(2))                         # (B, T, dim)
+    def forward(self, x: torch.Tensor, mask: torch.Tensor, side: torch.Tensor) -> torch.Tensor:
+        pad = mask < 0.5
+        # padded frames are re-zeroed after every step that has a bias: the depthwise
+        # convs read k//2 frames past a sequence's end, and must see zeros there or a
+        # short sequence's tail depends on whatever else shares its batch
+        h = self.stem(x.flatten(2)) * mask.unsqueeze(-1)    # (B, T, dim)
         h = h.transpose(1, 2)
         for block in self.conv:
-            h = block(h)
+            h = block(h) * mask.unsqueeze(1)
         h = h.transpose(1, 2)
         for layer in self.transformer:
-            h = layer(h)
-        weight = weight.unsqueeze(-1) + 1e-6                # confidence-weighted mean pool
-        pooled = (h * weight).sum(dim=1) / weight.sum(dim=1)
-        return F.normalize(self.head(pooled), dim=1)
+            h = layer(h, pad)
+        # confidence-weighted mean pool over REAL frames only
+        weight = (x[..., 9].mean(dim=2) * mask).unsqueeze(-1)
+        pooled = (h * weight).sum(dim=1) / weight.sum(dim=1).clamp_min(1e-6)
+        return F.normalize(self.head(torch.cat([pooled, self.side_norm(side)], dim=1)), dim=1)
 
 
 class ArcFaceHead(nn.Module):
@@ -132,13 +147,23 @@ class SignModel(nn.Module):
         else:
             self.head = ArcFaceHead(cfg.embed_dim, cfg.n_classes, cfg.arcface_s, cfg.arcface_m)
 
-    def forward(self, x: torch.Tensor, labels: torch.Tensor | None = None):
-        embedding = self.embedder(x)
+    def forward(self, x: torch.Tensor, mask: torch.Tensor, side: torch.Tensor,
+                labels: torch.Tensor | None = None):
+        embedding = self.embedder(x, mask, side)
         if isinstance(self.head, ArcFaceHead):
             logits = self.head(embedding, labels)
         else:
             logits = self.head(embedding)
         return embedding, logits
+
+
+@torch.no_grad()
+def embedding_of(model: SignModel, pre) -> np.ndarray:
+    """One preprocess() result -> embedding. The single-attempt inference seam:
+    mask and side features have to be built the same way training built them."""
+    x = torch.from_numpy(pre.tensor)[None]
+    side = torch.from_numpy(side_features(pre.duration_s, pre.peak_speed))[None]
+    return model.embedder(x, torch.ones(x.shape[:2]), side)[0].numpy()
 
 
 def parameter_count(model: nn.Module) -> int:

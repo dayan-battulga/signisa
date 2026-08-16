@@ -2,19 +2,60 @@
 on val top-1. All knobs come from signisa.config.Config."""
 
 import math
+import time
 
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Sampler
 
 from .config import Config
+from .data import pad_collate
 from .models import SignModel
 
 
+class LengthBucketSampler(Sampler):
+    """Yield batches of similar-length sequences.
+
+    Sequences are stored at native length, so pad-to-batch-max wastes compute — and
+    skews the BatchNorms — in proportion to the length spread inside a batch. Real
+    clips run 6 to 384 frames with a median near 40, so uniformly random batches would
+    be mostly padding. Sorting inside a shuffled pool keeps batch composition close to
+    random while collapsing that spread.
+    """
+
+    def __init__(self, lengths, batch_size: int, shuffle: bool, seed: int,
+                 pool_batches: int = 50):
+        self.lengths = np.asarray(lengths)
+        self.batch_size, self.shuffle = batch_size, shuffle
+        self.pool = batch_size * pool_batches
+        self.rng = np.random.default_rng(seed)
+
+    def __iter__(self):
+        n = len(self.lengths)
+        order = self.rng.permutation(n) if self.shuffle else np.arange(n)
+        batches = []
+        for start in range(0, n, self.pool):
+            chunk = order[start:start + self.pool]
+            chunk = chunk[np.argsort(self.lengths[chunk], kind="stable")]
+            batches += [chunk[i:i + self.batch_size].tolist()
+                        for i in range(0, len(chunk), self.batch_size)]
+        if self.shuffle:
+            self.rng.shuffle(batches)
+        return iter(batches)
+
+    def __len__(self) -> int:
+        return math.ceil(len(self.lengths) / self.batch_size)
+
+
 def make_loader(dataset: Dataset, cfg: Config, shuffle: bool) -> DataLoader:
-    return DataLoader(dataset, batch_size=cfg.batch_size, shuffle=shuffle,
-                      num_workers=cfg.num_workers, pin_memory=torch.cuda.is_available(),
-                      drop_last=False)
+    common = dict(collate_fn=pad_collate, num_workers=cfg.num_workers,
+                  pin_memory=torch.cuda.is_available())
+    lengths = getattr(dataset, "lengths", None)  # a Subset (smoke tests) has none
+    if lengths is None:
+        return DataLoader(dataset, batch_size=cfg.batch_size, shuffle=shuffle, **common)
+    return DataLoader(dataset, batch_sampler=LengthBucketSampler(
+        lengths, cfg.batch_size, shuffle, cfg.seed), **common)
 
 
 def warmup_cosine(cfg: Config, steps_per_epoch: int):
@@ -34,11 +75,23 @@ def warmup_cosine(cfg: Config, steps_per_epoch: int):
 def top1_accuracy(model: SignModel, loader: DataLoader, device: str) -> float:
     model.eval()
     correct = total = 0
-    for x, y in loader:
-        _, logits = model(x.to(device))  # no labels -> plain cosine logits for arcface too
+    for x, mask, side, y in loader:
+        # no labels -> plain cosine logits for arcface too
+        _, logits = model(x.to(device), mask.to(device), side.to(device))
         correct += (logits.argmax(dim=1).cpu() == y).sum().item()
         total += len(y)
     return correct / max(total, 1)
+
+
+def _report_projected_time(elapsed_s: float, epochs_done: int, cfg: Config) -> None:
+    """Kaggle sessions are wall-clock capped, so say early whether the run fits."""
+    per_epoch = elapsed_s / epochs_done
+    hours = per_epoch * cfg.epochs / 3600
+    print(f"throughput: {per_epoch:.1f} s/epoch -> projected {hours:.1f} h "
+          f"for {cfg.epochs} epochs")
+    if hours > cfg.session_budget_h:
+        print(f"WARNING: over the {cfg.session_budget_h:g} h session budget — "
+              f"restart with epochs <= {int(cfg.session_budget_h * cfg.epochs / hours)}")
 
 
 def train_model(cfg: Config, train_ds: Dataset, val_ds: Dataset,
@@ -61,13 +114,14 @@ def train_model(cfg: Config, train_ds: Dataset, val_ds: Dataset,
 
     history = {"train_loss": [], "val_top1": []}
     best_top1, best_state, patience_left, step = -1.0, None, cfg.patience, 0
+    started = time.perf_counter()
     for epoch in range(cfg.epochs):
         model.train()
         epoch_loss, n_batches = 0.0, 0
-        for x, y in train_loader:
-            x, y = x.to(device), y.to(device)
+        for x, mask, side, y in train_loader:
+            x, mask, side, y = x.to(device), mask.to(device), side.to(device), y.to(device)
             with torch.autocast(device_type="cuda", enabled=use_amp):
-                _, logits = model(x, y)
+                _, logits = model(x, mask, side, y)
                 loss = F.cross_entropy(logits, y)
             optimizer.zero_grad()
             scaler.scale(loss).backward()
@@ -83,6 +137,8 @@ def train_model(cfg: Config, train_ds: Dataset, val_ds: Dataset,
 
         val_top1 = top1_accuracy(model, val_loader, device)
         history["val_top1"].append(val_top1)
+        if epoch == 2:  # three full epochs in, throughput has settled
+            _report_projected_time(time.perf_counter() - started, 3, cfg)
         if val_top1 > best_top1:
             best_top1, patience_left = val_top1, cfg.patience
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}

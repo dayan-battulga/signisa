@@ -1,19 +1,20 @@
-"""Preprocessing chain (research Tasks 2 + 3B): raw holistic landmarks -> (T_OUT, 65, 10) tensor.
+"""Preprocessing chain (research Tasks 2 + 3B): raw holistic landmarks -> (T, 65, 10) tensor.
 
 Order of operations:
     mirror (left-dominant only) -> fill short gaps
     -> root-center -> shoulder-width scale -> rotate to canonical frame
     -> One Euro filter (in normalized units) -> side features (duration, peak speed)
-    -> zero-fill remaining gaps -> resample to T_OUT
+    -> zero-fill remaining gaps -> cap at MAX_FRAMES
     -> velocity + bone vectors + confidence channel.
 
 Notes anchored in the research docs:
 - Zero-filling long occlusion gaps (rather than interpolating) follows the Kaggle
   asl-signs winners: absence becomes a learnable feature, flagged by the confidence channel.
-- Resampling to a fixed T_OUT removes execution-speed differences between fluent
-  signers and slow novices (3B's domain-shift mitigation). Raw duration and peak
-  speed are preserved as side features because movement speed/tension can be
-  lexically contrastive (backlog flag #2).
+- Sequences keep their NATIVE length (Phase 1c). Resampling everything to a fixed 160
+  frames destroyed the rhythm signal; the model now sees real frame counts behind a
+  padding mask, plus duration and peak speed as scalars, because movement speed/tension
+  can be lexically contrastive (backlog flag #2). Speed variation between fluent signers
+  and slow novices is handled by train-time speed-scale augmentation instead.
 """
 
 from dataclasses import dataclass
@@ -28,13 +29,13 @@ from .landmarks import (
     R_SHOULDER,
 )
 
-T_OUT = 160
+MAX_FRAMES = 384     # ~13 s at 30 fps; the longest real asl-signs clip is 223 frames
 MAX_GAP_FRAMES = 3
 _EPS = 1e-6
 
 @dataclass(frozen=True)
 class Preprocessed:
-    tensor: np.ndarray   # (T_OUT, 65, 10) float32, NaN-free
+    tensor: np.ndarray   # (T <= MAX_FRAMES, 65, 10) float32, NaN-free
     duration_s: float    # raw attempt duration before resampling
     peak_speed: float    # max per-frame displacement * fps, in shoulder-width units
 
@@ -166,21 +167,25 @@ def _unit(v: np.ndarray):
 
 
 def zero_filled(seq: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Replace remaining NaN nodes with the origin; return (seq, presence) with presence in {0,1}."""
-    present = ~np.isnan(seq).any(axis=2)
-    return np.where(present[..., None], seq, 0.0), present.astype(np.float32)
+    """Replace remaining NaN nodes with the origin; return (seq, (T, N, 1) confidence in {0,1})."""
+    present = (~np.isnan(seq).any(axis=2))[..., None]
+    return np.where(present, seq, 0.0), present.astype(np.float32)
 
 
 def resampled(values: np.ndarray, t_out: int) -> np.ndarray:
-    """Linearly resample the time axis of (T, ...) to (t_out, ...)."""
+    """Linearly resample the time axis of (T, ...) to (t_out, ...).
+
+    Vectorized rather than per-column np.interp: speed-scale augmentation calls this
+    once per training sample, where a 400-column Python loop showed up in profiles.
+    """
     t_in = values.shape[0]
     if t_in == 1:
         return np.repeat(values, t_out, axis=0)
-    src = np.linspace(0.0, 1.0, t_in)
-    dst = np.linspace(0.0, 1.0, t_out)
-    flat = values.reshape(t_in, -1)
-    out = np.stack([np.interp(dst, src, flat[:, i]) for i in range(flat.shape[1])], axis=1)
-    return out.reshape((t_out,) + values.shape[1:])
+    pos = np.linspace(0.0, t_in - 1, t_out)
+    lo = np.floor(pos).astype(int)
+    hi = np.minimum(lo + 1, t_in - 1)
+    weight = (pos - lo).reshape((-1,) + (1,) * (values.ndim - 1))
+    return values[lo] * (1.0 - weight) + values[hi] * weight
 
 
 def peak_speed_of(seq: np.ndarray, fps: float) -> float:
@@ -204,12 +209,13 @@ def preprocess(holistic: np.ndarray, fps: float = 30.0, left_dominant: bool = Fa
     duration_s = seq.shape[0] / fps
     peak = peak_speed_of(seq, fps)
 
-    coords, presence = zero_filled(seq)
-    coords = resampled(coords, T_OUT)
-    confidence = np.clip(resampled(presence[..., None], T_OUT), 0.0, 1.0)
+    coords, confidence = zero_filled(seq)
+    if coords.shape[0] > MAX_FRAMES:  # resample, not truncate: a clipped sign is a wrong sign
+        coords = resampled(coords, MAX_FRAMES)
+        confidence = np.clip(resampled(confidence, MAX_FRAMES), 0.0, 1.0)
 
     tensor = with_derived_channels(coords, confidence, version)
-    assert tensor.shape == (T_OUT, LANDMARK_SETS[version].n_nodes, N_FEATURES)
+    assert tensor.shape == (coords.shape[0], LANDMARK_SETS[version].n_nodes, N_FEATURES)
     return Preprocessed(tensor=tensor, duration_s=duration_s, peak_speed=peak)
 
 
