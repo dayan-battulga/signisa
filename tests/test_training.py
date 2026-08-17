@@ -241,6 +241,40 @@ def merged_dir(tmp_path_factory):
     return out
 
 
+def test_citizen_build_accepts_multiple_shard_dirs(merged_dir, tmp_path):
+    """npz files split across extraction-shard dirs build the same citizen rows."""
+    import shutil
+
+    src = merged_dir.parent
+    npz = sorted((src / "extracted").glob("*.npz"))
+    dirs = [tmp_path / "shard0", tmp_path / "shard1"]
+    for d in dirs:
+        d.mkdir()
+    for i, p in enumerate(npz):
+        shutil.copy(p, dirs[i % 2] / p.name)
+
+    out = tmp_path / "tensors"
+    subprocess.run(
+        [sys.executable, "scripts/build_training_tensors.py",
+         "--landmarks-dir", str(SAMPLES), "--out-dir", str(out),
+         "--citizen-npz-dir", str(dirs[0]), "--citizen-npz-dir", str(dirs[1]),
+         "--citizen-mapping", str(src / "mapping.csv")],
+        check=True, cwd=ROOT)
+    merged = pd.read_csv(merged_dir / "index.csv")
+    split = pd.read_csv(out / "index.csv")
+    pd.testing.assert_frame_equal(split[split.domain == "asl_citizen"],
+                                  merged[merged.domain == "asl_citizen"])
+
+    shutil.copy(npz[0], dirs[1] / npz[0].name)  # same stem in two shard dirs
+    proc = subprocess.run(
+        [sys.executable, "scripts/build_training_tensors.py",
+         "--landmarks-dir", str(SAMPLES), "--out-dir", str(tmp_path / "t2"),
+         "--citizen-npz-dir", str(dirs[0]), "--citizen-npz-dir", str(dirs[1]),
+         "--citizen-mapping", str(src / "mapping.csv")],
+        capture_output=True, text=True, cwd=ROOT)
+    assert proc.returncode != 0 and "overlapping extraction shards" in proc.stderr
+
+
 def test_citizen_build_rejects_stale_mapping_and_empty_npz_dir(merged_dir, tmp_path):
     src = merged_dir.parent
     good_mapping = pd.read_csv(src / "mapping.csv")

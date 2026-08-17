@@ -105,3 +105,28 @@ def test_pending_videos_resume_semantics(tmp_path):
     (videos / "sub" / "a.mp4").touch()                   # duplicate stem across dirs
     with pytest.raises(AssertionError, match="duplicate video stems"):
         pending_videos(videos, out)
+
+
+def test_shard_partition_is_deterministic_and_complete(tmp_path):
+    videos = tmp_path / "videos"
+    out = tmp_path / "out"
+    videos.mkdir(), out.mkdir()
+    names = [f"clip{i:03d}.mp4" for i in range(11)]
+    for name in names:
+        (videos / name).touch()
+
+    shards = [pending_videos(videos, out, i, 4) for i in range(4)]
+    stems = [v.stem for s in shards for v in s]
+    assert sorted(stems) == sorted(Path(n).stem for n in names)   # disjoint union = all
+    assert len(set(stems)) == len(stems)
+    assert shards[0] == pending_videos(videos, out, 0, 4)         # deterministic
+
+    # the partition is over the FULL sorted list: another shard's completions
+    # never shift this shard's membership
+    (out / "clip000.npz").touch()                                 # shard 0's first clip
+    assert pending_videos(videos, out, 1, 4) == shards[1]
+    assert [v.stem for v in pending_videos(videos, out, 0, 4)] == \
+        [v.stem for v in shards[0] if v.stem != "clip000"]
+
+    with pytest.raises(AssertionError, match="shard"):
+        pending_videos(videos, out, 4, 4)

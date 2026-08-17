@@ -77,12 +77,20 @@ def _mediapipe_version() -> str:
         return "stub"
 
 
-def pending_videos(videos_dir: Path, out_dir: Path) -> list[Path]:
-    """Videos with neither a completed npz nor a logged failure."""
+def pending_videos(videos_dir: Path, out_dir: Path, shard_index: int = 0,
+                   num_shards: int = 1) -> list[Path]:
+    """This shard's videos with neither a completed npz nor a logged failure.
+
+    Shards partition the FULL sorted list (interleaved i::n), before the pending
+    filter — so the partition is deterministic and identical across sessions no
+    matter how much each shard has already completed.
+    """
+    assert 0 <= shard_index < num_shards, f"shard {shard_index} of {num_shards}"
     videos = sorted(p for p in videos_dir.rglob("*")
                     if p.suffix.lower() in VIDEO_SUFFIXES)
     stems = [v.stem for v in videos]
     assert len(set(stems)) == len(stems), "duplicate video stems — outputs would collide"
+    videos = videos[shard_index::num_shards]
     done = {p.stem for p in out_dir.glob("*.npz")}
     failed = set()
     failures = out_dir / "failures.csv"
@@ -101,12 +109,17 @@ def main() -> None:
     ap.add_argument("--model", type=Path, default=DEFAULT_MODEL)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--shard-index", type=int, default=0,
+                    help="with --num-shards: extract slice i::n of the sorted video list")
+    ap.add_argument("--num-shards", type=int, default=1)
+    ap.add_argument("--session-budget-h", type=float, default=11.0,
+                    help="warn early if the projected shard time exceeds this")
     args = ap.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     if not args.model.exists():
         create_landmarker(args.model)  # fail fast with the download command, before the pool
-    videos = pending_videos(args.videos_dir, args.out_dir)
+    videos = pending_videos(args.videos_dir, args.out_dir, args.shard_index, args.num_shards)
     if args.limit is not None:
         videos = videos[:args.limit]
     if not videos:
@@ -142,6 +155,13 @@ def main() -> None:
                     rate = done / (time.perf_counter() - t0)
                     eta_min = (len(videos) - done) / rate / 60 if rate else 0
                     print(f"{done}/{len(videos)} ({rate:.2f} clips/s, ~{eta_min:.0f} min left)")
+                if done == min(200, len(videos)):  # early enough to abort and re-shard
+                    rate = done / (time.perf_counter() - t0)
+                    hours = len(videos) / rate / 3600
+                    print(f"projected shard time: {hours:.1f} h for {len(videos)} clips")
+                    if hours > args.session_budget_h:
+                        print(f"WARNING: over the {args.session_budget_h:g} h session "
+                              "budget — raise --num-shards")
     print(f"done: {ok} extracted, {failed} failed -> {args.out_dir} "
           f"(failures in {failures_path.name})")
 

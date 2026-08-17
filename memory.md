@@ -5,6 +5,29 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 11 (2026-08-17, Kaggle extraction wrapper + multi-input prep):
+- **notebooks/kaggle_extract.ipynb**: sharded ASL Citizen extraction on Kaggle CPU
+  against the kaggle.com/datasets/abd0kamel/asl-citizen mirror. CONFIG = SHARD_INDEX /
+  NUM_SHARDS (4) / WORKERS (4); run once per shard in separate sessions, publish each
+  output, attach all to kaggle_prep. First cell is an integrity gate: globs the
+  attached inputs, hard-fails under 80k videos or without all three split CSVs
+  (partial mirror -> use the Microsoft download; never silently extract a subset).
+  Split CSVs are copied into every shard output so prep needs only extraction
+  outputs + asl-signs. Ends with shard_manifest.json + totals + <20 GB assert +
+  an INCOMPLETE resume hint. Gate/discovery cells exercised locally against fake
+  /kaggle trees (80k-file mirror, missing-CSV, partial-mirror, partial-shards).
+- **extract_holistic.py** gained --shard-index/--num-shards (interleaved i::n over
+  the FULL sorted list, so the partition never shifts with completion state —
+  regression-tested) and a projected-shard-time print at clip 200 with a warning
+  past --session-budget-h (11) so NUM_SHARDS can be raised early.
+- **kaggle_prep.ipynb** now merges MULTIPLE inputs: globs
+  /kaggle/input/*/shard_manifest.json for extraction outputs, notes partial shard
+  sets, runs map_asl_citizen from the copied splits, passes one --citizen-npz-dir
+  per shard dir (build_training_tensors accepts the flag repeatedly; stems are
+  asserted unique ACROSS dirs — overlapping shards fail loudly), then asserts no
+  cross-domain participant collisions and prints per-domain sequence/signer counts.
+  With no extraction outputs attached it degrades to the plain PopSign build.
+
 Session 10 (2026-08-17, ASL Citizen extraction infrastructure):
 - **Strategy call: signer diversity promoted to the active phase** (PopSign has 21
   signers; ASL Citizen has 52 and raw video). 1c training may run in parallel;

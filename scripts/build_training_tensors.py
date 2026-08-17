@@ -69,25 +69,35 @@ def left_dominant_participants(train: pd.DataFrame, fps: float) -> set[int]:
     return {pid for pid, vs in votes.items() if majority_dominance(vs) == "left"}
 
 
-def citizen_clips(npz_dir: Path, mapping_csv: Path, class_of: dict) -> pd.DataFrame:
-    """Mapping rows joined to their extracted npz; missing extractions dropped with a count.
+def citizen_clips(npz_dirs: list[Path], mapping_csv: Path, class_of: dict) -> pd.DataFrame:
+    """Mapping rows joined to their extracted npz (one or more extraction-shard dirs);
+    missing extractions dropped with a count.
 
     Label ids are re-derived from THIS build's labels file, not trusted from the CSV:
     ids are positional, so a mapping generated against an older training_labels.json
     would silently scramble every citizen label.
     """
-    assert npz_dir.is_dir(), f"{npz_dir} is not a directory"
+    for d in npz_dirs:
+        assert d.is_dir(), f"{d} is not a directory"
+    npz_of: dict[str, Path] = {}
+    for d in npz_dirs:
+        for p in d.glob("*.npz"):
+            assert p.stem not in npz_of, (
+                f"{p.stem} appears in both {npz_of.get(p.stem)} and {p} — "
+                "overlapping extraction shards?")
+            npz_of[p.stem] = p
     mapping = pd.read_csv(mapping_csv)
     stale = mapping.canonical_label_id != mapping.canonical_label.map(class_of)
     assert not stale.any(), (
         f"{stale.sum()} mapping rows disagree with --labels (e.g. "
         f"{mapping[stale].canonical_label.iloc[0]}) — regenerate asl_citizen_mapping.csv")
-    mapping["npz"] = [npz_dir / f"{Path(f).stem}.npz" for f in mapping.videofile]
-    missing = ~mapping.npz.map(Path.exists)
-    assert not missing.all(), f"none of the {len(mapping)} mapped clips have an npz in {npz_dir}"
+    mapping["npz"] = [npz_of.get(Path(f).stem) for f in mapping.videofile]
+    missing = mapping.npz.isna()
+    assert not missing.all(), (
+        f"none of the {len(mapping)} mapped clips have an npz under {npz_dirs}")
     if missing.any():
         print(f"skipping {missing.sum()}/{len(mapping)} mapped clips with no extracted npz "
-              f"(see {npz_dir}/failures.csv)")
+              "(extraction failures or a shard not attached yet)")
     return mapping[~missing].reset_index(drop=True)
 
 
@@ -109,7 +119,8 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--fps", type=float, default=30.0)
     ap.add_argument("--landmark-version", default="v1", choices=["v1", "v2"])
-    ap.add_argument("--citizen-npz-dir", type=Path)
+    ap.add_argument("--citizen-npz-dir", type=Path, action="append",
+                    help="repeatable: one dir per extraction shard")
     ap.add_argument("--citizen-mapping", type=Path)
     args = ap.parse_args()
     assert (args.citizen_npz_dir is None) == (args.citizen_mapping is None), (
