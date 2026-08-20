@@ -28,6 +28,27 @@ from .landmarks import (
 MODEL_URL = ("https://storage.googleapis.com/mediapipe-models/holistic_landmarker/"
              "holistic_landmarker/float16/latest/holistic_landmarker.task")
 DEFAULT_MODEL = Path("data/models/holistic_landmarker.task")
+MAX_SIDE = 640  # downscale before MediaPipe: landmarks are normalized, so only speed changes.
+# (The legacy API's model_complexity knob does not exist in the Tasks API — the .task
+# bundle bakes its models in; input resolution is the remaining speed lever.)
+
+
+def downscaled(frame: np.ndarray, max_side: int = MAX_SIDE) -> np.ndarray:
+    """Shrink so the long side is <= max_side; no-op when already small or max_side <= 0.
+
+    ponytail: measured on a 720p smoke clip, 640 is ~1.25x faster but detected 38%
+    fewer frames (small far-away hands lose crop pixels). Fine for ASL Citizen's
+    centered webcam framing in principle — A/B n_detected_frames on ~50 real clips
+    (--max-side 0 vs 640) before committing a full extraction.
+    """
+    import cv2
+
+    h, w = frame.shape[:2]
+    if max_side <= 0 or max(h, w) <= max_side:
+        return frame
+    scale = max_side / max(h, w)
+    return cv2.resize(frame, (round(w * scale), round(h * scale)),
+                      interpolation=cv2.INTER_AREA)
 
 
 def create_landmarker(model_path=DEFAULT_MODEL):
@@ -69,7 +90,7 @@ def holistic_row(result) -> np.ndarray:
     return row
 
 
-def extract_video(video_path, landmarker) -> tuple[np.ndarray, float]:
+def extract_video(video_path, landmarker, max_side: int = MAX_SIDE) -> tuple[np.ndarray, float]:
     """One video file -> ((T, 543, 3) float32, fps). Raises on an unreadable file."""
     import cv2
 
@@ -85,8 +106,8 @@ def extract_video(video_path, landmarker) -> tuple[np.ndarray, float]:
             ok, frame = cap.read()
             if not ok:
                 break
-            result = detect_frame(landmarker, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                  int(round(len(rows) * 1000.0 / fps)))
+            rgb = cv2.cvtColor(downscaled(frame, max_side), cv2.COLOR_BGR2RGB)
+            result = detect_frame(landmarker, rgb, int(round(len(rows) * 1000.0 / fps)))
             rows.append(holistic_row(result))
     finally:
         cap.release()

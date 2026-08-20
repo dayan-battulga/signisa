@@ -5,6 +5,32 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 12 (2026-08-20, time-boxed chain-resumable extraction):
+- **A shard hit Kaggle's 12 h cap and was SIGKILLed — killed commits publish NOTHING.**
+  Estimation-based sharding is out; extraction is now time-boxed + chain-resumable.
+- **--time-budget-h** (notebook TIME_BUDGET_H=10.5): checked after every completed
+  clip; on expiry the queued futures are cancelled, the <= workers in-flight clips
+  finish (atomic writes land and the next run skips them — verified in the chain
+  smoke), done/remaining printed, exit 0 so the version SAVES.
+- **--done-dir (repeatable)**: prior runs' outputs count as completed (npz AND their
+  failures.csv). Chained Kaggle flow: publish the partial version, attach it plus all
+  earlier links, re-run same SHARD_INDEX — only the remainder extracts. Smoke-tested
+  three-link chain locally (budget-stop -> resume -> nothing pending).
+  shard_manifest.json now carries n_remaining + chained_on; kaggle_prep warns when an
+  attached shard chain still has clips remaining (attach its latest version). Prep's
+  cross-dir stem-uniqueness assert already handles chained partials (later links
+  never re-extract earlier links' clips).
+- **Speed: frames downscaled to long side <= 640 (MAX_SIDE) before MediaPipe.**
+  MEASURED trade-off on a 720p smoke clip: ~1.25x faster but 38% fewer detected
+  frames (small far-away hands lose crop pixels). ASL Citizen's centered webcam
+  framing should be far more forgiving, but A/B n_detected_frames on ~50 real clips
+  (--max-side 0 vs 640) at the start of shard 0 before committing all 83k.
+  **model_complexity does NOT exist in the Tasks API** (verified: HolisticLandmarker
+  options are confidence thresholds only; the .task bundle bakes its models in) —
+  input resolution is the only available speed knob.
+- Early projection line kept, now informational: prints measured clips/s + projected
+  shard hours + how many chained runs the budget implies.
+
 Session 11 (2026-08-17, Kaggle extraction wrapper + multi-input prep):
 - **notebooks/kaggle_extract.ipynb**: sharded ASL Citizen extraction on Kaggle CPU
   against the kaggle.com/datasets/abd0kamel/asl-citizen mirror. CONFIG = SHARD_INDEX /

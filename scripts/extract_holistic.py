@@ -8,8 +8,12 @@ Resumable by construction: outputs are written to a .part file and atomically
 renamed, so an existing <stem>.npz IS the completed-clip manifest — reruns skip
 it. Clips with zero detected frames (or unreadable files) are appended to
 <out-dir>/failures.csv and also skipped on restart; delete that file to retry
-them. Needs the [live] extra and the model bundle (create_landmarker prints the
-curl command if it's missing).
+them. --done-dir (repeatable) counts prior runs' outputs as completed too — on
+Kaggle, a chained session attaches the previous version's output read-only and
+writes only the remainder. --time-budget-h stops cleanly (exit 0) once the
+budget elapses, so a session-capped platform still SAVES everything finished.
+Needs the [live] extra and the model bundle (create_landmarker prints the curl
+command if it's missing).
 
 Usage:
     python scripts/extract_holistic.py --videos-dir <asl-citizen>/videos \
@@ -25,21 +29,27 @@ from pathlib import Path
 
 import numpy as np
 
-from signisa.preprocess.holistic import DEFAULT_MODEL, create_landmarker, extract_video
+from signisa.preprocess.holistic import (
+    DEFAULT_MODEL,
+    MAX_SIDE,
+    create_landmarker,
+    extract_video,
+)
 
 VIDEO_SUFFIXES = {".mp4", ".mov", ".mkv", ".webm", ".avi"}
 
-def _init_worker(model_path: Path, out_dir: Path) -> None:
-    global _MODEL_PATH, _OUT_DIR
-    _MODEL_PATH, _OUT_DIR = model_path, out_dir
+def _init_worker(model_path: Path, out_dir: Path, max_side: int) -> None:
+    global _MODEL_PATH, _OUT_DIR, _MAX_SIDE
+    _MODEL_PATH, _OUT_DIR, _MAX_SIDE = model_path, out_dir, max_side
 
 
 def _extract_job(video: Path) -> tuple[str, str, str]:
-    return extract_one(video, _OUT_DIR, model_path=_MODEL_PATH)
+    return extract_one(video, _OUT_DIR, model_path=_MODEL_PATH, max_side=_MAX_SIDE)
 
 
 def extract_one(video: Path, out_dir: Path, landmarker=None,
-                model_path: Path = DEFAULT_MODEL) -> tuple[str, str, str]:
+                model_path: Path = DEFAULT_MODEL,
+                max_side: int = MAX_SIDE) -> tuple[str, str, str]:
     """-> ("ok", stem, stats) or ("fail", stem, reason). Atomic write, never partial.
 
     A fresh landmarker per clip unless one is injected (tests): VIDEO-mode tracking
@@ -49,7 +59,7 @@ def extract_one(video: Path, out_dir: Path, landmarker=None,
     if own:
         landmarker = create_landmarker(model_path)
     try:
-        holistic, fps = extract_video(video, landmarker)
+        holistic, fps = extract_video(video, landmarker, max_side)
     except Exception as e:  # unreadable/corrupt clip must not kill the whole run
         return "fail", video.stem, str(e)
     finally:
@@ -78,12 +88,14 @@ def _mediapipe_version() -> str:
 
 
 def pending_videos(videos_dir: Path, out_dir: Path, shard_index: int = 0,
-                   num_shards: int = 1) -> list[Path]:
+                   num_shards: int = 1, done_dirs: list[Path] = ()) -> list[Path]:
     """This shard's videos with neither a completed npz nor a logged failure.
 
     Shards partition the FULL sorted list (interleaved i::n), before the pending
     filter — so the partition is deterministic and identical across sessions no
-    matter how much each shard has already completed.
+    matter how much each shard has already completed. done_dirs are prior runs'
+    read-only outputs (chained Kaggle versions): their npz and failures count as
+    completed exactly like out_dir's own.
     """
     assert 0 <= shard_index < num_shards, f"shard {shard_index} of {num_shards}"
     videos = sorted(p for p in videos_dir.rglob("*")
@@ -91,12 +103,13 @@ def pending_videos(videos_dir: Path, out_dir: Path, shard_index: int = 0,
     stems = [v.stem for v in videos]
     assert len(set(stems)) == len(stems), "duplicate video stems — outputs would collide"
     videos = videos[shard_index::num_shards]
-    done = {p.stem for p in out_dir.glob("*.npz")}
-    failed = set()
-    failures = out_dir / "failures.csv"
-    if failures.exists():
-        with failures.open() as f:
-            failed = {row["file"] for row in csv.DictReader(f)}
+    done, failed = set(), set()
+    for d in [out_dir, *done_dirs]:
+        done |= {p.stem for p in d.glob("*.npz")}
+        failures = d / "failures.csv"
+        if failures.exists():
+            with failures.open() as f:
+                failed |= {row["file"] for row in csv.DictReader(f)}
     for stale in out_dir.glob("*.npz.part"):  # a crash mid-write leaves these
         stale.unlink()
     return [v for v in videos if v.stem not in done and v.stem not in failed]
@@ -112,14 +125,19 @@ def main() -> None:
     ap.add_argument("--shard-index", type=int, default=0,
                     help="with --num-shards: extract slice i::n of the sorted video list")
     ap.add_argument("--num-shards", type=int, default=1)
-    ap.add_argument("--session-budget-h", type=float, default=11.0,
-                    help="warn early if the projected shard time exceeds this")
+    ap.add_argument("--done-dir", type=Path, action="append", default=[],
+                    help="repeatable: prior runs' outputs whose clips count as completed")
+    ap.add_argument("--time-budget-h", type=float, default=None,
+                    help="stop cleanly (exit 0) after this many hours; unset = run to completion")
+    ap.add_argument("--max-side", type=int, default=MAX_SIDE,
+                    help="downscale frames to this long side before MediaPipe; 0 = full res")
     args = ap.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     if not args.model.exists():
         create_landmarker(args.model)  # fail fast with the download command, before the pool
-    videos = pending_videos(args.videos_dir, args.out_dir, args.shard_index, args.num_shards)
+    videos = pending_videos(args.videos_dir, args.out_dir, args.shard_index,
+                            args.num_shards, args.done_dir)
     if args.limit is not None:
         videos = videos[:args.limit]
     if not videos:
@@ -139,7 +157,7 @@ def main() -> None:
         # crash (mediapipe segfault, OOM) makes pending futures raise BrokenProcessPool,
         # where Pool.imap_unordered would hang forever waiting on the lost result
         with ProcessPoolExecutor(args.workers, initializer=_init_worker,
-                                 initargs=(args.model, args.out_dir)) as pool:
+                                 initargs=(args.model, args.out_dir, args.max_side)) as pool:
             futures = {pool.submit(_extract_job, v): v for v in videos}
             for future in as_completed(futures):
                 status, stem, detail = future.result()
@@ -155,15 +173,23 @@ def main() -> None:
                     rate = done / (time.perf_counter() - t0)
                     eta_min = (len(videos) - done) / rate / 60 if rate else 0
                     print(f"{done}/{len(videos)} ({rate:.2f} clips/s, ~{eta_min:.0f} min left)")
-                if done == min(200, len(videos)):  # early enough to abort and re-shard
+                if done == min(200, len(videos)):  # informational: the budget hard-stops anyway
                     rate = done / (time.perf_counter() - t0)
                     hours = len(videos) / rate / 3600
-                    print(f"projected shard time: {hours:.1f} h for {len(videos)} clips")
-                    if hours > args.session_budget_h:
-                        print(f"WARNING: over the {args.session_budget_h:g} h session "
-                              "budget — raise --num-shards")
-    print(f"done: {ok} extracted, {failed} failed -> {args.out_dir} "
-          f"(failures in {failures_path.name})")
+                    print(f"measured {rate:.2f} clips/s -> projected {hours:.1f} h "
+                          f"for this shard's {len(videos)} clips"
+                          + (f" (budget {args.time_budget_h:g} h: needs "
+                             f"~{-(-hours // args.time_budget_h):.0f} chained run(s))"
+                             if args.time_budget_h else ""))
+                if (args.time_budget_h
+                        and time.perf_counter() - t0 > args.time_budget_h * 3600):
+                    print(f"time budget {args.time_budget_h:g} h reached — stopping cleanly")
+                    # cancel every queued clip; wait only for the <= workers in flight
+                    # (their atomic writes still land and the next run skips them)
+                    pool.shutdown(wait=True, cancel_futures=True)
+                    break
+    print(f"done: {ok} extracted, {failed} failed, {len(videos) - ok - failed} remaining "
+          f"-> {args.out_dir} (failures in {failures_path.name})")
 
 
 if __name__ == "__main__":

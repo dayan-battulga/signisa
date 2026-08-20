@@ -107,6 +107,67 @@ def test_pending_videos_resume_semantics(tmp_path):
         pending_videos(videos, out)
 
 
+def test_pending_videos_counts_prior_run_outputs_as_done(tmp_path):
+    """Chained Kaggle sessions attach prior versions read-only via done_dirs."""
+    videos = tmp_path / "videos"
+    out = tmp_path / "out"
+    prior1, prior2 = tmp_path / "v1" / "extracted", tmp_path / "v2" / "extracted"
+    for d in (videos, out, prior1, prior2):
+        d.mkdir(parents=True)
+    for name in ("a.mp4", "b.mp4", "c.mp4", "d.mp4", "e.mp4"):
+        (videos / name).touch()
+    (prior1 / "a.npz").touch()
+    with (prior1 / "failures.csv").open("w", newline="") as f:
+        import csv as _csv
+        _csv.writer(f).writerows([["file", "reason"], ["b", "zero detected frames of 3"]])
+    (prior2 / "c.npz").touch()
+    (out / "d.npz").touch()  # this run's own progress still counts too
+
+    pending = pending_videos(videos, out, done_dirs=[prior1, prior2])
+    assert [v.stem for v in pending] == ["e"]
+    # without the priors, only this run's output is known
+    assert [v.stem for v in pending_videos(videos, out)] == ["a", "b", "c", "e"]
+
+
+def test_downscaled_caps_long_side():
+    from signisa.preprocess.holistic import downscaled
+
+    big = np.zeros((1080, 1920, 3), dtype=np.uint8)
+    small = downscaled(big)
+    assert small.shape == (360, 640, 3)                      # aspect kept, long side 640
+    tall = downscaled(np.zeros((1280, 720, 3), dtype=np.uint8))
+    assert tall.shape == (640, 360, 3)
+    already = np.zeros((480, 640, 3), dtype=np.uint8)
+    assert downscaled(already) is already                    # no-op, no copy
+    assert downscaled(big, 0) is big                         # 0 = full resolution
+
+
+def test_time_budget_stops_cleanly_with_exit_zero(tmp_path):
+    pytest.importorskip("mediapipe")
+    model = ROOT / "data/models/holistic_landmarker.task"
+    if not model.exists():
+        pytest.skip("no local model bundle")
+    videos = tmp_path / "videos"
+    videos.mkdir()
+    for i in range(4):
+        write_video(videos / f"clip{i}.mp4", n_frames=3)
+
+    import subprocess
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/extract_holistic.py"),
+         "--videos-dir", str(videos), "--out-dir", str(tmp_path / "out"),
+         "--model", str(model), "--workers", "1", "--time-budget-h", "1e-7"],
+        capture_output=True, text=True, cwd=ROOT)
+    assert proc.returncode == 0, proc.stderr                 # a saved version, not a SIGKILL
+    assert "time budget" in proc.stdout and "remaining" in proc.stdout
+    # the budget tripped after the first completed clip; queued ones were cancelled
+    done = len(list((tmp_path / "out").glob("*.npz")))
+    failures = tmp_path / "out" / "failures.csv"
+    import csv as _csv
+    failed = sum(1 for _ in _csv.DictReader(failures.open())) if failures.exists() else 0
+    assert 1 <= done + failed < 4
+
+
 def test_shard_partition_is_deterministic_and_complete(tmp_path):
     videos = tmp_path / "videos"
     out = tmp_path / "out"
