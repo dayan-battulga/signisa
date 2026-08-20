@@ -69,10 +69,11 @@ def test_extract_one_writes_npz_and_rejects_zero_detection(tmp_path):
     write_video(video, n_frames=5)
 
     stub = StubLandmarker([fake_result(pose=33)] * 3)  # 3 detected, 2 empty frames
-    status, stem, detail = extract_one(video, tmp_path, landmarker=stub)
+    status, stem, detail, next_ts = extract_one(video, tmp_path, landmarker=stub)
     assert (status, stem) == ("ok", "clip1")
     assert stub.timestamps == sorted(stub.timestamps)  # strictly increasing ints
     assert len(set(stub.timestamps)) == len(stub.timestamps)
+    assert next_ts > stub.timestamps[-1]               # next clip starts past this one
     with np.load(tmp_path / "clip1.npz") as z:
         assert z["holistic"].shape == (5, 543, 3) and z["holistic"].dtype == np.float16
         assert int(z["n_detected_frames"]) == 3 and int(z["n_frames"]) == 5
@@ -81,9 +82,30 @@ def test_extract_one_writes_npz_and_rejects_zero_detection(tmp_path):
 
     video2 = tmp_path / "clip2.mp4"
     write_video(video2, n_frames=4)
-    status, stem, detail = extract_one(video2, tmp_path, landmarker=StubLandmarker([]))
+    status, stem, detail, next_ts = extract_one(video2, tmp_path,
+                                                landmarker=StubLandmarker([]))
     assert (status, stem) == ("fail", "clip2") and "zero detected" in detail
+    assert next_ts is not None                        # clean read: reuse stays safe
     assert not (tmp_path / "clip2.npz").exists()
+
+
+def test_extract_one_reuses_landmarker_with_monotonic_timestamps(tmp_path):
+    """One landmarker instance across clips: timestamps must never go backwards,
+    and an exception must signal 'offset unknown' so the worker discards it."""
+    for name in ("a.mp4", "b.mp4"):
+        write_video(tmp_path / name, n_frames=4)
+    stub = StubLandmarker([fake_result(pose=33)] * 8)
+
+    _, _, _, ts1 = extract_one(tmp_path / "a.mp4", tmp_path, landmarker=stub)
+    _, _, _, ts2 = extract_one(tmp_path / "b.mp4", tmp_path, landmarker=stub,
+                               ts_offset_ms=ts1)
+    assert stub.timestamps == sorted(set(stub.timestamps))  # strict across BOTH clips
+    assert ts2 > ts1 > 0
+
+    missing = tmp_path / "nope.mp4"                   # unreadable -> exception path
+    status, _, _, next_ts = extract_one(missing, tmp_path, landmarker=stub,
+                                        ts_offset_ms=ts2)
+    assert status == "fail" and next_ts is None
 
 
 def test_pending_videos_resume_semantics(tmp_path):
@@ -127,6 +149,16 @@ def test_pending_videos_counts_prior_run_outputs_as_done(tmp_path):
     assert [v.stem for v in pending] == ["e"]
     # without the priors, only this run's output is known
     assert [v.stem for v in pending_videos(videos, out)] == ["a", "b", "c", "e"]
+
+
+def test_first_frame_dims_probe(tmp_path):
+    from signisa.preprocess.holistic import first_frame_dims
+
+    video = tmp_path / "probe.mp4"
+    write_video(video, n_frames=2)
+    assert first_frame_dims(video) == (64, 64)
+    with pytest.raises(ValueError, match="cannot open"):
+        first_frame_dims(tmp_path / "missing.mp4")
 
 
 def test_downscaled_caps_long_side():

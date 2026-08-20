@@ -90,8 +90,32 @@ def holistic_row(result) -> np.ndarray:
     return row
 
 
-def extract_video(video_path, landmarker, max_side: int = MAX_SIDE) -> tuple[np.ndarray, float]:
-    """One video file -> ((T, 543, 3) float32, fps). Raises on an unreadable file."""
+def first_frame_dims(video_path, max_side: int = MAX_SIDE) -> tuple[int, int]:
+    """(h, w) of the first decodable frame after downscaling — the cheap probe for
+    reusing one landmarker across clips: its graph RET_CHECK-crashes when frame
+    dimensions change between calls (the segmentation smoother keeps the last mask).
+    Decodes a real frame rather than trusting container metadata, which ignores
+    rotation."""
+    import cv2
+
+    cap = cv2.VideoCapture(str(video_path))
+    try:
+        ok, frame = cap.read()
+    finally:
+        cap.release()
+    if not ok:
+        raise ValueError("cv2 cannot open the file")
+    return downscaled(frame, max_side).shape[:2]
+
+
+def extract_video(video_path, landmarker, max_side: int = MAX_SIDE,
+                  ts_offset_ms: int = 0) -> tuple[np.ndarray, float]:
+    """One video file -> ((T, 543, 3) float32, fps). Raises on an unreadable file.
+
+    ts_offset_ms lets a caller reuse one landmarker across clips: VIDEO-mode
+    timestamps must strictly increase per INSTANCE, so each new clip starts past
+    the previous clip's last timestamp.
+    """
     import cv2
 
     cap = cv2.VideoCapture(str(video_path))
@@ -107,7 +131,8 @@ def extract_video(video_path, landmarker, max_side: int = MAX_SIDE) -> tuple[np.
             if not ok:
                 break
             rgb = cv2.cvtColor(downscaled(frame, max_side), cv2.COLOR_BGR2RGB)
-            result = detect_frame(landmarker, rgb, int(round(len(rows) * 1000.0 / fps)))
+            result = detect_frame(landmarker, rgb,
+                                  ts_offset_ms + int(round(len(rows) * 1000.0 / fps)))
             rows.append(holistic_row(result))
     finally:
         cap.release()

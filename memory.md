@@ -5,6 +5,18 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 13 (2026-08-20, worker log silencing + landmarker reuse):
+- Worker stderr (mediapipe/TFLite native spam on fd 2) redirected per worker to
+  <out-dir>/worker_logs/worker-<pid>.log via os.dup2 in the pool initializer —
+  the parent console now carries only our lines; Python exceptions still reach the
+  parent through futures. Progress lines print every 100 clips (was 25).
+- Landmarker created ONCE per worker and reused across clips (recreated every
+  RECREATE_EVERY=500 as a leak guard). Reuse verified bit-identical to fresh
+  instances on real video. Three safety disciplines required — see the Gotchas
+  entry. The naive reuse crashed the real smoke run immediately (mixed portrait/
+  landscape clips), which is how the resolution rule was found: first_frame_dims
+  probes each clip (decoding one frame, rotation-safe) and dims changes recreate.
+
 Session 12 (2026-08-20, time-boxed chain-resumable extraction):
 - **A shard hit Kaggle's 12 h cap and was SIGKILLed — killed commits publish NOTHING.**
   Estimation-based sharding is out; extraction is now time-boxed + chain-resumable.
@@ -474,7 +486,13 @@ Locked (from CLAUDE.md — change only with strong evidence, log changes here):
   every reader normalizes with astype(str); metrics keys / trials.participant are str.
 - mediapipe pinned by reality, not pyproject: [live] needs a Tasks-API build
   (>=0.10.30); mp.solutions imports are dead. HolisticLandmarker VIDEO mode requires
-  strictly increasing timestamps PER INSTANCE — never reuse a landmarker across clips.
+  strictly increasing timestamps PER INSTANCE. Reuse across clips (session 13) is
+  verified BIT-IDENTICAL to fresh instances but only under three disciplines
+  (extract_holistic._extract_job): monotonic ts offsets across clips, a fresh
+  instance whenever the downscaled frame dims change (the graph's segmentation
+  smoother keeps the last mask and RET_CHECK-crashes on 360-vs-640), and a fresh
+  instance after any exception (offset desync would spuriously fail every later
+  clip). close() on a failed graph itself raises — always close via _drop_landmarker.
 - The extraction failures.csv doubles as a skip-list on restart; deleting it retries
   failures. Zero-detection is deterministic, so retries only matter after code changes.
 

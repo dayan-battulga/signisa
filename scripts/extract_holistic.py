@@ -34,40 +34,81 @@ from signisa.preprocess.holistic import (
     MAX_SIDE,
     create_landmarker,
     extract_video,
+    first_frame_dims,
 )
 
 VIDEO_SUFFIXES = {".mp4", ".mov", ".mkv", ".webm", ".avi"}
+RECREATE_EVERY = 500  # clips per landmarker instance: reuse for speed, recreate as a leak guard
+
+_LANDMARKER, _TS_OFFSET, _CLIPS_DONE, _DIMS = None, 0, 0, None
+
+
+def _drop_landmarker() -> None:
+    global _LANDMARKER
+    if _LANDMARKER is not None:
+        try:
+            _LANDMARKER.close()
+        except Exception:
+            pass  # a failed graph often cannot close; the fresh instance is the fix
+        _LANDMARKER = None
+
 
 def _init_worker(model_path: Path, out_dir: Path, max_side: int) -> None:
     global _MODEL_PATH, _OUT_DIR, _MAX_SIDE
     _MODEL_PATH, _OUT_DIR, _MAX_SIDE = model_path, out_dir, max_side
+    # mediapipe/TFLite native code sprays INFO/WARNING lines on fd 2 at every
+    # landmarker creation; send each worker's stderr to its own file so the parent's
+    # progress lines stay readable. Python exceptions still reach the parent via the
+    # future, so nothing actionable is hidden.
+    logs = out_dir / "worker_logs"
+    logs.mkdir(exist_ok=True)
+    fd = os.open(logs / f"worker-{os.getpid()}.log", os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+    os.dup2(fd, 2)
+    os.close(fd)
 
 
 def _extract_job(video: Path) -> tuple[str, str, str]:
-    return extract_one(video, _OUT_DIR, model_path=_MODEL_PATH, max_side=_MAX_SIDE)
+    """Runs in a worker: one landmarker per process, reused across clips.
 
-
-def extract_one(video: Path, out_dir: Path, landmarker=None,
-                model_path: Path = DEFAULT_MODEL,
-                max_side: int = MAX_SIDE) -> tuple[str, str, str]:
-    """-> ("ok", stem, stats) or ("fail", stem, reason). Atomic write, never partial.
-
-    A fresh landmarker per clip unless one is injected (tests): VIDEO-mode tracking
-    state and the monotonic-timestamp requirement must not leak across clips.
+    Reuse (verified bit-identical to fresh instances on same-size clips) needs three
+    disciplines. VIDEO-mode timestamps must strictly increase per instance, so each
+    clip starts past the previous clip's last timestamp. The graph RET_CHECK-crashes
+    when frame dimensions change between calls, so a clip with different downscaled
+    dims gets a fresh instance. And a mid-clip exception leaves the frames-fed count
+    unknown — a desynced offset would spuriously fail EVERY later clip in this
+    worker — so any exception discards the instance too.
     """
-    own = landmarker is None
-    if own:
-        landmarker = create_landmarker(model_path)
+    global _LANDMARKER, _TS_OFFSET, _CLIPS_DONE, _DIMS
     try:
-        holistic, fps = extract_video(video, landmarker, max_side)
-    except Exception as e:  # unreadable/corrupt clip must not kill the whole run
+        dims = first_frame_dims(video, _MAX_SIDE)
+    except Exception as e:
         return "fail", video.stem, str(e)
-    finally:
-        if own:
-            landmarker.close()
+    if _LANDMARKER is not None and (dims != _DIMS or _CLIPS_DONE >= RECREATE_EVERY):
+        _drop_landmarker()
+    if _LANDMARKER is None:
+        _LANDMARKER = create_landmarker(_MODEL_PATH)
+        _TS_OFFSET, _CLIPS_DONE, _DIMS = 0, 0, dims
+    status, stem, detail, next_ts = extract_one(
+        video, _OUT_DIR, _LANDMARKER, max_side=_MAX_SIDE, ts_offset_ms=_TS_OFFSET)
+    if next_ts is None:  # exception mid-clip: offset unknown, graph state suspect
+        _drop_landmarker()
+    else:
+        _TS_OFFSET, _CLIPS_DONE = next_ts, _CLIPS_DONE + 1
+    return status, stem, detail
+
+
+def extract_one(video: Path, out_dir: Path, landmarker, max_side: int = MAX_SIDE,
+                ts_offset_ms: int = 0) -> tuple[str, str, str, int | None]:
+    """-> (status, stem, detail, next ts offset — None when an exception makes the
+    landmarker's fed-frame count unknown). Atomic write, never partial."""
+    try:
+        holistic, fps = extract_video(video, landmarker, max_side, ts_offset_ms)
+    except Exception as e:  # unreadable/corrupt clip must not kill the whole run
+        return "fail", video.stem, str(e), None
+    next_ts = ts_offset_ms + int(round(len(holistic) * 1000.0 / fps)) + 1000
     detected = int(np.isfinite(holistic[:, :, 0]).any(axis=1).sum())
     if detected == 0:
-        return "fail", video.stem, f"zero detected frames of {len(holistic)}"
+        return "fail", video.stem, f"zero detected frames of {len(holistic)}", next_ts
 
     final = out_dir / f"{video.stem}.npz"
     part = final.with_suffix(".npz.part")
@@ -76,7 +117,8 @@ def extract_one(video: Path, out_dir: Path, landmarker=None,
                             n_frames=len(holistic), n_detected_frames=detected,
                             mediapipe_version=_mediapipe_version())
     os.replace(part, final)
-    return "ok", video.stem, f"{len(holistic)} frames, {detected} detected, {fps:.1f} fps"
+    return ("ok", video.stem,
+            f"{len(holistic)} frames, {detected} detected, {fps:.1f} fps", next_ts)
 
 
 def _mediapipe_version() -> str:
@@ -144,6 +186,7 @@ def main() -> None:
         print("nothing pending — all clips extracted or logged as failures")
         return
 
+    print(f"worker stderr (mediapipe/TFLite log spam) -> {args.out_dir / 'worker_logs'}")
     failures_path = args.out_dir / "failures.csv"
     new_file = not failures_path.exists()
     t0 = time.perf_counter()
@@ -169,7 +212,7 @@ def main() -> None:
                     flog.flush()
                     print(f"FAIL {stem}: {detail}")
                 done = ok + failed
-                if done % 25 == 0 or done == len(videos):
+                if done % 100 == 0 or done == len(videos):
                     rate = done / (time.perf_counter() - t0)
                     eta_min = (len(videos) - done) / rate / 60 if rate else 0
                     print(f"{done}/{len(videos)} ({rate:.2f} clips/s, ~{eta_min:.0f} min left)")
