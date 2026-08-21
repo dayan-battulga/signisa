@@ -5,6 +5,17 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 14 (2026-08-21, self-contained chained versions):
+- kaggle_extract now COPIES prior versions' npz (plus a merged failures.csv) from
+  attached inputs into /kaggle/working/extracted before extracting the remainder,
+  and writes ONE merged manifest (n_extracted = corpus, n_new_this_run, n_failed,
+  n_remaining). **Invariant: a shard's newest version always carries that shard's
+  complete corpus to date** (round-2 ~4.5 GB, well under caps). Chaining and prep
+  now attach ONLY each shard's latest version; attaching two versions of the same
+  shard trips prep's overlapping-stems assert on purpose. Notebook change only —
+  the script's npz-exists resume covers the folded files; --done-dir remains for
+  local no-copy chains. Verified against a real budget-stopped prior locally.
+
 Session 13 (2026-08-20, worker log silencing + landmarker reuse):
 - Worker stderr (mediapipe/TFLite native spam on fd 2) redirected per worker to
   <out-dir>/worker_logs/worker-<pid>.log via os.dup2 in the pool initializer —
