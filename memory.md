@@ -5,6 +5,30 @@ the original push); the Phase 0 work below predates them but is consistent.
 
 ## Status
 
+Session 15 (2026-08-22, nested-mount chaining fix — canary postmortem):
+- **Canary failure (shard1 V2): chained resume found NOTHING** — Kaggle mounted the
+  inputs NESTED (/kaggle/input/datasets/<user>/<slug>/...) and the shallow
+  `/kaggle/input/*/shard_manifest.json` glob silently missed them; the run started
+  re-extracting from scratch (100/20850, ~22 h ETA, no chained_on line).
+- **All chaining now lives in extract_holistic.py, none in the notebook**:
+  find_prior_manifests (recursive, depth<=6, prunes any dir holding video files so
+  the 83k-file mirror is never walked), fold_prior_outputs (the c4ad52d fold,
+  handling both manifest layouts: root-level beside extracted/ AND script-written
+  inside the npz dir; deduped by clips dir), manifest written by the SCRIPT into
+  out_dir, and a loud launch gate before extraction: depth-2 input listing, every
+  manifest found + clip count, chained_on + done/remaining — or a prominent
+  "NO PRIOR MANIFESTS FOUND — fresh run" warning. Those lines are the go/no-go
+  check for every remaining chained run.
+- **--prior-inputs auto-defaults to /kaggle/input when it exists** — the 4 already-
+  imported per-shard Kaggle notebooks get the whole fix via their git clone alone,
+  no notebook re-import. (Their old notebook-side fold cell finds nothing and is
+  harmless; the script does the real fold.) kaggle_prep switched to the same
+  recursive discovery (same bug would have hit it at merge time).
+- New guard from a self-inflicted scare: pending_videos hard-fails on a videos dir
+  with no videos — a wrong/unmounted path must never read as "0 remaining", exit 0.
+- Canary replicated locally end to end (nested prior, old manifest layout): gate
+  printed, 2 clips folded, only the remainder extracted, merged manifest correct.
+
 Session 14 (2026-08-21, self-contained chained versions):
 - kaggle_extract now COPIES prior versions' npz (plus a merged failures.csv) from
   attached inputs into /kaggle/working/extracted before extracting the remainder,
