@@ -9,9 +9,11 @@ Inference is verified against their published TFLite weights (tests/test_kaggle1
 """
 
 import math
+import os
 import time
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -124,6 +126,20 @@ def augmented(points: np.ndarray, rng: np.random.Generator) -> np.ndarray:
         corner, size = rng.random(2), rng.uniform(0.2, 0.4)
         x[((x > corner) & (x < corner + size)).all(-1)] = np.nan
     return x
+
+
+def asl_signs_root(input_dir="/kaggle/input") -> Path:
+    """The dir holding asl-signs' train.csv beside train_landmark_files/, at ANY mount depth
+    (Kaggle nests mounts unpredictably — memory.md session 15). Never walks the parquets."""
+    roots = []
+    for d, dirs, files in os.walk(input_dir):
+        if "train.csv" in files and "train_landmark_files" in dirs:
+            roots.append(Path(d))
+        dirs[:] = [x for x in dirs if x != "train_landmark_files"]
+    assert len(roots) == 1, (
+        f"expected one asl-signs root under {input_dir}, found {roots} — is the asl-signs "
+        f"competition data attached? Attached: {sorted(str(p) for p in Path(input_dir).glob('*/*'))}")
+    return roots[0]
 
 
 def _points_of_file(path) -> np.ndarray:  # top-level so the process pool can pickle it

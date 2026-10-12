@@ -10,7 +10,7 @@ torch = pytest.importorskip("torch")
 
 from signisa.kaggle1st import (  # noqa: E402
     LHAND, POINT_LANDMARKS, RHAND, Kaggle1stNet, MaskedBatchNorm, PointsDataset, RecipeConfig,
-    features_of, flipped, padded, points_cache, train_kaggle1st)
+    asl_signs_root, features_of, flipped, padded, points_cache, train_kaggle1st)
 from signisa.preprocess.kaggle import load_holistic  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,6 +85,17 @@ def test_port_reproduces_published_model():
         theirs = interpreter.get_tensor(index["model/classifier/MatMul;model/classifier/BiasAdd"])[0]
         np.testing.assert_allclose(logits, theirs, rtol=1e-3, atol=1e-3, err_msg=path.name)
         assert logits.argmax() == theirs.argmax()
+
+
+def test_asl_signs_root_found_at_any_depth(tmp_path):
+    (tmp_path / "splits").mkdir()
+    (tmp_path / "splits/train.csv").touch()  # a bare train.csv (e.g. ASL Citizen) is not a hit
+    root = tmp_path / "competitions/a/b/c/asl-signs"
+    (root / "train_landmark_files").mkdir(parents=True)
+    (root / "train.csv").touch()
+    assert asl_signs_root(tmp_path) == root
+    with pytest.raises(AssertionError, match="splits"):
+        asl_signs_root(tmp_path / "splits")
 
 
 def test_flip_swaps_hands_and_undoes_itself():
