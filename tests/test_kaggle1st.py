@@ -127,6 +127,7 @@ def test_recipe_trains_and_awp_restores_weights():
                        late_dropout_start_epoch=0, num_workers=0)
     model, history = train_kaggle1st(cfg, train_ds, val_ds, "cpu")
     assert len(history["val_loss"]) == 2 and np.isfinite(history["train_loss"]).all()
+    assert history["awp_skipped"] == [0.0, 0.0]
     torch.manual_seed(cfg.seed)
     initial = Kaggle1stNet()
     drift = max((a - b).abs().max().item()

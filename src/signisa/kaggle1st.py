@@ -339,14 +339,14 @@ def train_kaggle1st(cfg: RecipeConfig, train_ds: Dataset, val_ds: Dataset,
         with torch.autocast(device_type="cuda", enabled=use_amp):
             return F.cross_entropy(model(x, mask), y, label_smoothing=0.1)
 
-    history = {"train_loss": [], "val_loss": [], "val_top1": [], "hours": []}
+    history = {"train_loss": [], "val_loss": [], "val_top1": [], "hours": [], "awp_skipped": []}
     best_loss, best_state, step, started = math.inf, None, 0, time.perf_counter()
     for epoch in range(cfg.epochs):
         epoch_started = time.perf_counter()
         model.train()
         model.late_dropout = epoch >= cfg.late_dropout_start_epoch
         awp = epoch >= cfg.awp_start_epoch
-        losses = []
+        losses, awp_skips = [], 0
         for i, (x, mask, y) in enumerate(loader):
             x, mask, y = (t.to(device, non_blocking=True) for t in (x, mask, y))
             if i % accum == 0:  # an epoch's < accum leftover micro-batches are dropped here
@@ -354,12 +354,16 @@ def train_kaggle1st(cfg: RecipeConfig, train_ds: Dataset, val_ds: Dataset,
             loss = loss_of(x, mask, y)
             deltas = []
             if awp:  # their AWP, per replica: step every weight by lambda * g/||g||, grad there
-                grads = torch.autograd.grad(scaler.scale(loss), params)
+                # scaled exactly like the backward below: the scaler only watches that one, so
+                # a larger scale here overflowed unseen and switched AWP off (session 18)
+                grads = torch.autograd.grad(scaler.scale(loss / accum), params)
                 norms = torch.stack([g.norm() for g in grads])
                 if torch.isfinite(norms).all():  # an fp16-overflow step: the scaler skips it anyway
                     deltas = [g * (cfg.awp_lambda / n.clamp_min(1e-12)) for g, n in zip(grads, norms)]
                     with torch.no_grad():
                         torch._foreach_add_(params, deltas)
+                else:
+                    awp_skips += 1
                 loss = loss_of(x, mask, y)
             scaler.scale(loss / accum).backward()
             if deltas:
@@ -386,11 +390,12 @@ def train_kaggle1st(cfg: RecipeConfig, train_ds: Dataset, val_ds: Dataset,
         hours = (time.perf_counter() - started) / 3600
         for key, value in (("train_loss", float(np.mean(losses))), ("val_loss", val_loss),
                            ("val_top1", (logits.argmax(1) == labels).float().mean().item()),
-                           ("hours", hours)):
+                           ("hours", hours), ("awp_skipped", awp_skips / len(losses))):
             history[key].append(value)
         epoch_h = (time.perf_counter() - epoch_started) / 3600
         print(f"epoch {epoch + 1}/{cfg.epochs} loss {history['train_loss'][-1]:.3f} "
-              f"val_loss {val_loss:.3f} val_top1 {history['val_top1'][-1]:.3f} | "
+              f"val_loss {val_loss:.3f} val_top1 {history['val_top1'][-1]:.3f} "
+              f"awp_skipped {history['awp_skipped'][-1]:.1%} | "
               f"{hours:.2f} h, ~{hours + epoch_h * (cfg.epochs - epoch - 1):.1f} h projected",
               flush=True)
         if val_loss < best_loss:
